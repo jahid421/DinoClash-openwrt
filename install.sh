@@ -9,8 +9,6 @@ set -e
 REPO="https://raw.githubusercontent.com/jahid421/openwrt-flclash/main"
 V="v1.18.10"
 D="/etc/mihomo"
-PORT="9595"
-SECRET="flclash123"
 
 echo "╔══════════════════════════════════════╗"
 echo "║  FLClash for OpenWrt Installer       ║"
@@ -53,6 +51,9 @@ echo "[✓] Mihomo installed"
 
 # Create directories
 mkdir -p $D/profiles $D/providers $D/ruleset $D/ui $D/scripts
+
+# Set transparent proxy default OFF
+echo "0" > $D/transparent
 
 # Download GeoIP databases
 echo "[*] Downloading GeoIP databases..."
@@ -104,7 +105,7 @@ rm -rf /tmp/luci-*
 /etc/init.d/rpcd restart >/dev/null 2>&1
 /etc/init.d/uhttpd restart >/dev/null 2>&1
 
-# Start
+# Start (transparent proxy OFF by default, so internet stays safe)
 /etc/init.d/mihomo start
 sleep 3
 
@@ -120,6 +121,12 @@ echo "║  → Services → Mihomo                 ║"
 echo "║                                      ║"
 echo "║  Dashboard: http://$RIP:9595/ui  ║"
 echo "║  Secret:    flclash123               ║"
+echo "║                                      ║"
+echo "║  Manual Proxy (any device):          ║"
+echo "║  Host: $RIP  Port: 7890         ║"
+echo "║                                      ║"
+echo "║  Transparent Proxy: OFF (default)    ║"
+echo "║  Enable it from LuCI panel later     ║"
 echo "║                                      ║"
 echo "╚══════════════════════════════════════╝"
 
