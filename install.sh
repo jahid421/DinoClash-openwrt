@@ -33,7 +33,7 @@ echo "[✓] Architecture: $M"
 
 echo "[*] Installing dependencies..."
 opkg update >/dev/null 2>&1
-for p in curl ca-bundle ca-certificates ip-full kmod-tun kmod-nft-tproxy coreutils-nohup; do
+for p in curl ca-bundle ca-certificates ip-full kmod-tun kmod-nft-tproxy coreutils-nohup luci-compat luci-lib-ipkg; do
   opkg install $p >/dev/null 2>&1 || true
 done
 echo "[✓] Dependencies installed"
