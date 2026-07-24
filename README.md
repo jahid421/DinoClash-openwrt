@@ -24,3 +24,6 @@ SSH into your router and run:
 
 ```bash
 curl -sL https://raw.githubusercontent.com/jahid421/openwrt-flclash/main/install.sh | sh
+
+## Usage
+## Access LuCI Panel
