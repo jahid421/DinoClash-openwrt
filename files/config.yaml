@@ -1,3 +1,4 @@
+# Default config - Add your proxies via LuCI panel
 mixed-port: 7890
 redir-port: 7892
 tproxy-port: 7893
@@ -10,12 +11,6 @@ external-controller: 0.0.0.0:9595
 external-ui: /etc/mihomo/ui
 secret: "flclash123"
 geodata-mode: true
-geo-auto-update: true
-geo-update-interval: 24
-find-process-mode: "off"
-global-client-fingerprint: chrome
-tcp-concurrent: true
-unified-delay: true
 
 profile:
   store-selected: true
@@ -23,48 +18,20 @@ profile:
 
 sniffer:
   enable: true
-  force-dns-mapping: true
-  parse-pure-ip: true
   sniff:
     HTTP:
       ports: [80, 8080-8880]
-      override-destination: true
     TLS:
       ports: [443, 8443]
-    QUIC:
-      ports: [443, 8443]
-
-tun:
-  enable: false
-  stack: mixed
-  dns-hijack:
-    - "any:53"
-  auto-route: true
-  auto-detect-interface: true
 
 dns:
   enable: true
   listen: 0.0.0.0:1053
-  ipv6: false
   enhanced-mode: fake-ip
   fake-ip-range: 198.18.0.1/16
-  fake-ip-filter:
-    - '*.lan'
-    - '*.local'
-    - '*.localhost'
-    - 'dns.msftncsi.com'
-    - '+.ntp.org'
-  default-nameserver:
-    - 223.5.5.5
-    - 1.1.1.1
   nameserver:
     - https://dns.cloudflare.com/dns-query
     - https://dns.google/dns-query
-  fallback:
-    - https://1.1.1.1/dns-query
-    - tls://dns.google:853
-  fallback-filter:
-    geoip: false
 
 proxies: []
 
