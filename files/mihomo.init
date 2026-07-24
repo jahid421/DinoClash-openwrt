@@ -3,7 +3,6 @@ USE_PROCD=1
 START=99
 STOP=10
 
-# Read TRANSPARENT flag from /etc/mihomo/transparent (default: 0)
 TRANSPARENT_FILE="/etc/mihomo/transparent"
 
 start_service() {
@@ -18,7 +17,6 @@ start_service() {
     
     sleep 3
     
-    # Only enable transparent proxy if flag is set
     if [ -f "$TRANSPARENT_FILE" ] && [ "$(cat $TRANSPARENT_FILE)" = "1" ]; then
         ip rule add fwmark 1 table 100 2>/dev/null || true
         ip route add local 0.0.0.0/0 dev lo table 100 2>/dev/null || true
