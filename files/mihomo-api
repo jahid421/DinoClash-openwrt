@@ -14,7 +14,9 @@ case "$ACTION" in
       [ -f "$TRANSPARENT_FILE" ] && TP=$(cat $TRANSPARENT_FILE)
       echo "{\"running\":true,\"pid\":$PID,\"memory\":\"${MEM} kB\",\"transparent\":$TP}"
     else
-      echo "{\"running\":false,\"transparent\":0}"
+      TP="0"
+      [ -f "$TRANSPARENT_FILE" ] && TP=$(cat $TRANSPARENT_FILE)
+      echo "{\"running\":false,\"transparent\":$TP}"
     fi
     ;;
   start)
@@ -30,11 +32,13 @@ case "$ACTION" in
     echo "{\"ok\":true}"
     ;;
   enable_tp)
+    mkdir -p /etc/mihomo
     echo "1" > $TRANSPARENT_FILE
     /etc/init.d/mihomo restart >/dev/null 2>&1
     echo "{\"ok\":true,\"transparent\":1}"
     ;;
   disable_tp)
+    mkdir -p /etc/mihomo
     echo "0" > $TRANSPARENT_FILE
     /etc/init.d/mihomo restart >/dev/null 2>&1
     echo "{\"ok\":true,\"transparent\":0}"
