@@ -1,9 +1,12 @@
 #!/bin/sh /etc/rc.common
+
 USE_PROCD=1
 START=99
 STOP=10
 
 TRANSPARENT_FILE="/etc/mihomo/transparent"
+LAN_IP="$(uci get network.lan.ipaddr 2>/dev/null || echo 192.168.1.1)"
+LAN_IF="$(uci get network.lan.device 2>/dev/null || echo br-lan)"
 
 start_service() {
     procd_open_instance mihomo
@@ -15,28 +18,43 @@ start_service() {
     procd_set_param pidfile /var/run/mihomo.pid
     procd_close_instance
     
-    sleep 3
+    sleep 5
     
     if [ -f "$TRANSPARENT_FILE" ] && [ "$(cat $TRANSPARENT_FILE)" = "1" ]; then
-        ip rule add fwmark 1 table 100 2>/dev/null || true
-        ip route add local 0.0.0.0/0 dev lo table 100 2>/dev/null || true
-        nft -f /etc/mihomo/nft.conf 2>/dev/null || true
-        uci set dhcp.@dnsmasq[0].noresolv='1'
-        uci -q delete dhcp.@dnsmasq[0].server
-        uci add_list dhcp.@dnsmasq[0].server='127.0.0.1#1053'
-        uci commit dhcp
-        /etc/init.d/dnsmasq restart
+        setup_transparent
     fi
 }
 
 stop_service() {
-    nft delete table inet mihomo 2>/dev/null || true
-    ip rule del fwmark 1 table 100 2>/dev/null || true
-    ip route del local 0.0.0.0/0 dev lo table 100 2>/dev/null || true
+    cleanup_transparent
+}
+
+setup_transparent() {
+    uci set dhcp.@dnsmasq[0].noresolv='1'
+    uci -q delete dhcp.@dnsmasq[0].server
+    uci add_list dhcp.@dnsmasq[0].server="127.0.0.1#1053"
+    uci commit dhcp
+    /etc/init.d/dnsmasq restart
+    
+    for i in 1 2 3 4 5 6 7 8 9 10; do
+        if ip link show utun >/dev/null 2>&1; then
+            break
+        fi
+        sleep 1
+    done
+    
+    if ip link show utun >/dev/null 2>&1; then
+        ip route add $LAN_IP/32 dev $LAN_IF 2>/dev/null || true
+    fi
+}
+
+cleanup_transparent() {
     uci set dhcp.@dnsmasq[0].noresolv='0'
     uci -q delete dhcp.@dnsmasq[0].server
     uci commit dhcp
     /etc/init.d/dnsmasq restart
+    
+    ip link del utun 2>/dev/null || true
 }
 
 service_triggers() {
