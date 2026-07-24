@@ -1,0 +1,38 @@
+#!/bin/sh
+echo "Content-Type: application/json"
+echo ""
+ACTION=$(echo "$QUERY_STRING" | sed -n 's/.*action=\([a-z_]*\).*/\1/p')
+case "$ACTION" in
+  status)
+    if pgrep -f "/usr/bin/mihomo" >/dev/null 2>&1; then
+      PID=$(pgrep -f "/usr/bin/mihomo" | head -n 1)
+      MEM=$(awk '/VmRSS/{print $2}' /proc/$PID/status 2>/dev/null)
+      [ -z "$MEM" ] && MEM=0
+      echo "{\"running\":true,\"pid\":$PID,\"memory\":\"${MEM} kB\"}"
+    else
+      echo "{\"running\":false}"
+    fi
+    ;;
+  start)
+    /etc/init.d/mihomo start >/dev/null 2>&1
+    echo "{\"ok\":true}"
+    ;;
+  stop)
+    /etc/init.d/mihomo stop >/dev/null 2>&1
+    echo "{\"ok\":true}"
+    ;;
+  restart)
+    /etc/init.d/mihomo restart >/dev/null 2>&1
+    echo "{\"ok\":true}"
+    ;;
+  update_geo)
+    cd /etc/mihomo
+    curl -sL -o geoip.dat "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip-lite.dat" 2>/dev/null
+    curl -sL -o geosite.dat "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat" 2>/dev/null
+    curl -sL -o Country.mmdb "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/country-lite.mmdb" 2>/dev/null
+    echo "{\"ok\":true}"
+    ;;
+  *)
+    echo "{\"ok\":false}"
+    ;;
+esac
