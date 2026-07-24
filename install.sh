@@ -1,8 +1,8 @@
 #!/bin/sh
 # ═══════════════════════════════════════════════
-# FLClash for OpenWrt - Lightweight Installer
+# FLClash for OpenWrt - Universal Installer
 # Repo: https://github.com/jahid421/openwrt-flclash
-# Supports: x86_64, arm64, armv7, mips, mipsel
+# Supports: ALL OpenWrt-compatible routers
 # ═══════════════════════════════════════════════
 
 set -e
@@ -14,6 +14,7 @@ D="/etc/mihomo"
 echo "╔══════════════════════════════════════╗"
 echo "║  FLClash for OpenWrt Installer       ║"
 echo "║  Auto-bypass TUN Mode                ║"
+echo "║  Universal (All Architectures)       ║"
 echo "╚══════════════════════════════════════╝"
 echo ""
 
@@ -44,69 +45,112 @@ dl() {
     local url="$1"
     local out="$2"
     if [ "$USE_WGET" = "1" ]; then
-        wget -q -O "$out" "$url"
+        wget -q -O "$out" "$url" 2>/dev/null
     else
-        curl -sL -o "$out" "$url"
+        curl -sL -o "$out" "$url" 2>/dev/null
     fi
 }
 
 echo "[✓] Download tool ready"
 
 # ═══════════════════════════════════════════════
-# Architecture detection (improved)
+# Architecture detection (OpenWrt DISTRIB_ARCH priority)
 # ═══════════════════════════════════════════════
-A=$(uname -m)
+UNAME_ARCH=$(uname -m)
 OWRT_ARCH=$(. /etc/openwrt_release 2>/dev/null; echo "$DISTRIB_ARCH")
+OWRT_TARGET=$(. /etc/openwrt_release 2>/dev/null; echo "$DISTRIB_TARGET")
 
 echo "[*] Detecting architecture..."
-echo "    uname -m: $A"
+echo "    uname -m: $UNAME_ARCH"
 echo "    OpenWrt:  $OWRT_ARCH"
+echo "    Target:   $OWRT_TARGET"
 
-case "$A" in
-  x86_64|amd64)
-    M="amd64-compatible"
-    ;;
-  aarch64|arm64)
-    M="arm64"
-    ;;
-  armv7l|armv7)
-    M="armv7"
-    ;;
-  armv6l|armv6)
-    M="armv7"
-    ;;
-  armv5*)
-    M="armv5"
-    ;;
-  mips)
-    # Big-endian mips (MediaTek MT7621 = RB750Gr3, Xiaomi 4A, etc)
-    M="mips-softfloat"
-    ;;
-  mipsel|mipsle)
-    # Little-endian mips
-    M="mipsle-softfloat"
-    ;;
-  mips64)
-    M="mips64"
-    ;;
-  mips64el|mips64le)
-    M="mips64le"
-    ;;
-  *)
-    # Fallback: check OpenWrt arch
-    case "$OWRT_ARCH" in
-      *mipsel*|*mipsle*) M="mipsle-softfloat" ;;
-      *mips64el*|*mips64le*) M="mips64le" ;;
-      *mips64*) M="mips64" ;;
-      *mips*) M="mips-softfloat" ;;
-      *aarch64*|*arm64*) M="arm64" ;;
-      *arm_cortex-a15*|*armv7*) M="armv7" ;;
-      *arm*) M="armv7" ;;
-      *x86_64*|*amd64*) M="amd64-compatible" ;;
-      *) echo "ERROR: Unsupported arch: $A ($OWRT_ARCH)"; exit 1 ;;
+# Use OpenWrt DISTRIB_ARCH first (more reliable), fallback to uname
+detect_arch() {
+    local a="$1"
+    case "$a" in
+        # x86_64 / amd64
+        x86_64*|amd64*)
+            echo "amd64-compatible"
+            return
+            ;;
+        # ARM 64-bit
+        aarch64*|arm64*)
+            echo "arm64"
+            return
+            ;;
+        # ARM 32-bit v7 (Cortex-A7/A8/A9/A15/A17)
+        armv7*|arm_cortex-a7*|arm_cortex-a8*|arm_cortex-a9*|arm_cortex-a15*|arm_cortex-a17*)
+            echo "armv7"
+            return
+            ;;
+        # ARM 32-bit v6
+        armv6*|arm_arm1176*|arm_arm1136*)
+            echo "armv6"
+            return
+            ;;
+        # ARM 32-bit v5
+        armv5*|arm_arm926*|arm_mpcore*|arm_fa526*|arm_xscale*)
+            echo "armv5"
+            return
+            ;;
+        # MIPS 64 little-endian
+        mips64el*|mips64le*)
+            echo "mips64le"
+            return
+            ;;
+        # MIPS 64 big-endian
+        mips64*|mips_octeonplus*)
+            echo "mips64"
+            return
+            ;;
+        # MIPS 32 little-endian (MediaTek MT7621/MT7620/MT7628, Ralink)
+        mipsel*|mipsle*|mipsel_24kc*|mipsel_74kc*|mipsel_mips32*)
+            echo "mipsle-softfloat"
+            return
+            ;;
+        # MIPS 32 big-endian (Atheros AR71xx/AR9344/QCA95xx)
+        mips*|mips_24kc*|mips_4kec*|mips_mips32*)
+            echo "mips-softfloat"
+            return
+            ;;
+        # RISC-V 64
+        riscv64*)
+            echo "riscv64"
+            return
+            ;;
+        # i386
+        i386*|i686*)
+            echo "386"
+            return
+            ;;
+        # LoongArch
+        loongarch64*)
+            echo "loong64"
+            return
+            ;;
     esac
-    ;;
-esac
+    echo ""
+}
+
+# Try OpenWrt arch first
+M=$(detect_arch "$OWRT_ARCH")
+
+# Fallback to uname if OpenWrt arch failed
+if [ -z "$M" ]; then
+    M=$(detect_arch "$UNAME_ARCH")
+fi
+
+# Final fallback
+if [ -z "$M" ]; then
+    echo "ERROR: Cannot detect architecture!"
+    echo "  uname: $UNAME_ARCH"
+    echo "  owrt:  $OWRT_ARCH"
+    echo ""
+    echo "Please report this at: https://github.com/jahid421/openwrt-flclash/issues"
+    exit 1
+fi
+
 echo "[✓] Architecture: $M"
 
 # ═══════════════════════════════════════════════
@@ -117,7 +161,8 @@ if [ "$AVAIL" -lt 30000 ]; then
     echo ""
     echo "⚠️  WARNING: Low disk space ($((AVAIL/1024)) MB free)"
     echo "   Required: ~40 MB"
-    echo "   Consider USB extroot for small routers (RB750Gr3 with 16MB flash)"
+    echo "   Small routers (16MB flash) need USB extroot!"
+    echo "   Examples: RB750Gr3, TP-Link Archer C7, older devices"
     echo ""
     echo "   Continue anyway? (5 sec to cancel with Ctrl+C)"
     sleep 5
@@ -128,59 +173,107 @@ fi
 # ═══════════════════════════════════════════════
 echo "[*] Installing dependencies..."
 opkg update >/dev/null 2>&1
-for p in curl ca-bundle ca-certificates ip-full kmod-tun kmod-nft-tproxy coreutils-nohup luci-compat luci-lib-ipkg; do
-  opkg install $p >/dev/null 2>&1 || true
+
+# Core dependencies
+for p in curl ca-bundle ca-certificates ip-full kmod-tun kmod-nft-tproxy coreutils-nohup; do
+    opkg install $p >/dev/null 2>&1 || true
 done
+
+# LuCI compatibility layer (essential for menu!)
+for p in luci-compat luci-lib-ipkg luci-lib-nixio; do
+    opkg install $p >/dev/null 2>&1 || true
+done
+
 echo "[✓] Dependencies installed"
 
 # ═══════════════════════════════════════════════
-# Download Mihomo binary
+# Download Mihomo binary with fallback
 # ═══════════════════════════════════════════════
 echo "[*] Downloading Mihomo core ($M)..."
 cd /tmp && rm -f mihomo.gz mihomo
 
-URL="https://github.com/MetaCubeX/mihomo/releases/download/$V/mihomo-linux-$M-$V.gz"
-echo "    URL: $URL"
-
-dl "$URL" mihomo.gz
-
-# Verify download
-if [ ! -s mihomo.gz ]; then
-    echo "ERROR: Download failed!"
-    exit 1
-fi
-
-# Test gzip integrity
-if ! gzip -t mihomo.gz 2>/dev/null; then
-    echo "ERROR: Downloaded file is not a valid gzip!"
-    echo "This might be wrong architecture. Trying alternatives..."
+download_and_verify() {
+    local arch="$1"
+    local url="https://github.com/MetaCubeX/mihomo/releases/download/$V/mihomo-linux-$arch-$V.gz"
+    echo "    Trying: $arch"
+    dl "$url" mihomo.gz
     
-    # Try alternatives
-    for ALT in "$M" "amd64-compatible" "mips-softfloat" "mipsle-softfloat"; do
-        echo "Trying: $ALT"
-        rm -f mihomo.gz
-        dl "https://github.com/MetaCubeX/mihomo/releases/download/$V/mihomo-linux-$ALT-$V.gz" mihomo.gz
-        if [ -s mihomo.gz ] && gzip -t mihomo.gz 2>/dev/null; then
-            echo "[✓] Alternative works: $ALT"
+    # Check if download succeeded
+    [ -s mihomo.gz ] || return 1
+    
+    # Check gzip integrity
+    gzip -t mihomo.gz 2>/dev/null || return 1
+    
+    # Extract
+    gunzip -f mihomo.gz 2>/dev/null || return 1
+    chmod +x mihomo
+    
+    # Test binary
+    if ./mihomo -v >/dev/null 2>&1; then
+        return 0
+    else
+        rm -f mihomo mihomo.gz
+        return 1
+    fi
+}
+
+# Try primary detected arch
+if download_and_verify "$M"; then
+    echo "[✓] Downloaded: $M"
+else
+    echo "[!] $M failed, trying alternatives..."
+    
+    # Smart alternatives based on architecture family
+    case "$M" in
+        mips-softfloat)
+            ALTS="mipsle-softfloat"
+            ;;
+        mipsle-softfloat)
+            ALTS="mips-softfloat"
+            ;;
+        armv7)
+            ALTS="armv6 armv5"
+            ;;
+        armv6)
+            ALTS="armv7 armv5"
+            ;;
+        armv5)
+            ALTS="armv7"
+            ;;
+        arm64)
+            ALTS="armv7"
+            ;;
+        amd64-compatible)
+            ALTS="amd64 386"
+            ;;
+        *)
+            ALTS="amd64-compatible arm64 mipsle-softfloat mips-softfloat"
+            ;;
+    esac
+    
+    FOUND=0
+    for ALT in $ALTS; do
+        if download_and_verify "$ALT"; then
+            echo "[✓] Alternative worked: $ALT"
             M="$ALT"
+            FOUND=1
             break
         fi
     done
+    
+    if [ "$FOUND" = "0" ]; then
+        echo "ERROR: No compatible binary found!"
+        echo "Detected arch: $M"
+        echo "Please report at: https://github.com/jahid421/openwrt-flclash/issues"
+        echo ""
+        echo "Available architectures:"
+        echo "  https://github.com/MetaCubeX/mihomo/releases"
+        exit 1
+    fi
 fi
 
-gunzip -f mihomo.gz
-chmod +x mihomo
 mv mihomo /usr/bin/mihomo
-
-# Verify binary works
-if ! /usr/bin/mihomo -v >/dev/null 2>&1; then
-    echo "ERROR: Binary doesn't run on this system!"
-    echo "Wrong architecture. Detected: $M"
-    echo "Check https://github.com/MetaCubeX/mihomo/releases for correct arch"
-    exit 1
-fi
-
-echo "[✓] Mihomo installed and verified"
+echo "[✓] Mihomo installed: $(/usr/bin/mihomo -v 2>&1 | head -1)"
 
 # ═══════════════════════════════════════════════
 # Setup directories
@@ -252,13 +345,16 @@ uci commit firewall
 /etc/init.d/firewall restart 2>/dev/null || true
 
 # ═══════════════════════════════════════════════
-# Auto-fix LAN IP in config
+# Auto-detect LAN IP and add to config
 # ═══════════════════════════════════════════════
 RIP=$(uci -q get network.lan.ipaddr || echo "192.168.1.1")
 LAN_NET=$(echo $RIP | awk -F. '{print $1"."$2"."$3".0/24"}')
 echo "[*] Router LAN: $RIP ($LAN_NET)"
 
-# Add LAN network to config if not present
+# Remove any old VM IPs and add current LAN
+sed -i '/192.168.87.0\/24/d' $D/config.yaml 2>/dev/null
+sed -i '/192.168.64.0\/24/d' $D/config.yaml 2>/dev/null
+
 if ! grep -q "$LAN_NET,DIRECT" $D/config.yaml; then
     sed -i "/^rules:/a\\
   - 'IP-CIDR,$LAN_NET,DIRECT,no-resolve'" $D/config.yaml
@@ -294,8 +390,15 @@ echo "║  Secret:    flclash123               ║"
 echo "║                                      ║"
 echo "║  📄 Upload YAML from LuCI panel      ║"
 echo "║                                      ║"
+echo "║  Architecture: $M                    "
+echo "║                                      ║"
 echo "╚══════════════════════════════════════╝"
 
 echo ""
 pgrep -f mihomo && echo "Mihomo: RUNNING ✅" || echo "Mihomo: STOPPED ❌ (check: logread | grep mihomo)"
 ip a show utun 2>/dev/null | head -3 && echo "TUN: ACTIVE ✅" || echo "TUN: Not created yet"
+
+echo ""
+echo "══════════════════════════════════════"
+echo "Support: https://github.com/jahid421/openwrt-flclash"
+echo "══════════════════════════════════════"
