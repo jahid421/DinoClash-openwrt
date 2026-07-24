@@ -46,3 +46,21 @@ Disable:
 ```bash
 echo "0" > /etc/mihomo/transparent && /etc/init.d/mihomo restart
 ```
+
+
+# Uninstall
+```bash
+/etc/init.d/mihomo stop
+/etc/init.d/mihomo disable
+rm -f /usr/bin/mihomo /etc/init.d/mihomo
+rm -rf /etc/mihomo /usr/lib/lua/luci/view/mihomo
+rm -f /usr/lib/lua/luci/controller/mihomo.lua
+rm -f /www/cgi-bin/mihomo-*
+uci set dhcp.@dnsmasq[0].noresolv='0'
+uci -q delete dhcp.@dnsmasq[0].server
+uci commit dhcp
+/etc/init.d/dnsmasq restart
+```
+Credits
+* MetaCubeX/mihomo - Proxy core
+* MetaCubeX/metacubexd - Dashboard
