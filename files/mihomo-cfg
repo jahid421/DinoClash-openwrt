@@ -1,0 +1,21 @@
+#!/bin/sh
+echo "Content-Type: text/plain"
+echo ""
+if [ "$REQUEST_METHOD" = "POST" ]; then
+    TMP="/tmp/mhcfg_$$.yaml"
+    cat > "$TMP"
+    if [ -s "$TMP" ]; then
+        grep -q '^external-controller:' "$TMP" || echo 'external-controller: 0.0.0.0:9595' >> "$TMP"
+        grep -q '^external-ui:' "$TMP" || echo 'external-ui: /etc/mihomo/ui' >> "$TMP"
+        grep -q '^secret:' "$TMP" || echo 'secret: "flclash123"' >> "$TMP"
+        cp /etc/mihomo/config.yaml /etc/mihomo/config.yaml.bak 2>/dev/null
+        mv "$TMP" /etc/mihomo/config.yaml
+        /etc/init.d/mihomo restart >/dev/null 2>&1
+        echo "SAVED"
+    else
+        rm -f "$TMP"
+        echo "EMPTY"
+    fi
+else
+    cat /etc/mihomo/config.yaml 2>/dev/null
+fi
