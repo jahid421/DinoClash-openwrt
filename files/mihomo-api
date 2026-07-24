@@ -2,15 +2,19 @@
 echo "Content-Type: application/json"
 echo ""
 ACTION=$(echo "$QUERY_STRING" | sed -n 's/.*action=\([a-z_]*\).*/\1/p')
+TRANSPARENT_FILE="/etc/mihomo/transparent"
+
 case "$ACTION" in
   status)
     if pgrep -f "/usr/bin/mihomo" >/dev/null 2>&1; then
       PID=$(pgrep -f "/usr/bin/mihomo" | head -n 1)
       MEM=$(awk '/VmRSS/{print $2}' /proc/$PID/status 2>/dev/null)
       [ -z "$MEM" ] && MEM=0
-      echo "{\"running\":true,\"pid\":$PID,\"memory\":\"${MEM} kB\"}"
+      TP="0"
+      [ -f "$TRANSPARENT_FILE" ] && TP=$(cat $TRANSPARENT_FILE)
+      echo "{\"running\":true,\"pid\":$PID,\"memory\":\"${MEM} kB\",\"transparent\":$TP}"
     else
-      echo "{\"running\":false}"
+      echo "{\"running\":false,\"transparent\":0}"
     fi
     ;;
   start)
@@ -24,6 +28,16 @@ case "$ACTION" in
   restart)
     /etc/init.d/mihomo restart >/dev/null 2>&1
     echo "{\"ok\":true}"
+    ;;
+  enable_tp)
+    echo "1" > $TRANSPARENT_FILE
+    /etc/init.d/mihomo restart >/dev/null 2>&1
+    echo "{\"ok\":true,\"transparent\":1}"
+    ;;
+  disable_tp)
+    echo "0" > $TRANSPARENT_FILE
+    /etc/init.d/mihomo restart >/dev/null 2>&1
+    echo "{\"ok\":true,\"transparent\":0}"
     ;;
   update_geo)
     cd /etc/mihomo
