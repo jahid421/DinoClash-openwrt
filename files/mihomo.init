@@ -3,6 +3,9 @@ USE_PROCD=1
 START=99
 STOP=10
 
+# Read TRANSPARENT flag from /etc/mihomo/transparent (default: 0)
+TRANSPARENT_FILE="/etc/mihomo/transparent"
+
 start_service() {
     procd_open_instance mihomo
     procd_set_param command /usr/bin/mihomo -d /etc/mihomo
@@ -12,15 +15,20 @@ start_service() {
     procd_set_param stderr 1
     procd_set_param pidfile /var/run/mihomo.pid
     procd_close_instance
+    
     sleep 3
-    ip rule add fwmark 1 table 100 2>/dev/null || true
-    ip route add local 0.0.0.0/0 dev lo table 100 2>/dev/null || true
-    nft -f /etc/mihomo/nft.conf 2>/dev/null || true
-    uci set dhcp.@dnsmasq[0].noresolv='1'
-    uci -q delete dhcp.@dnsmasq[0].server
-    uci add_list dhcp.@dnsmasq[0].server='127.0.0.1#1053'
-    uci commit dhcp
-    /etc/init.d/dnsmasq restart
+    
+    # Only enable transparent proxy if flag is set
+    if [ -f "$TRANSPARENT_FILE" ] && [ "$(cat $TRANSPARENT_FILE)" = "1" ]; then
+        ip rule add fwmark 1 table 100 2>/dev/null || true
+        ip route add local 0.0.0.0/0 dev lo table 100 2>/dev/null || true
+        nft -f /etc/mihomo/nft.conf 2>/dev/null || true
+        uci set dhcp.@dnsmasq[0].noresolv='1'
+        uci -q delete dhcp.@dnsmasq[0].server
+        uci add_list dhcp.@dnsmasq[0].server='127.0.0.1#1053'
+        uci commit dhcp
+        /etc/init.d/dnsmasq restart
+    fi
 }
 
 stop_service() {
