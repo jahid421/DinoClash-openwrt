@@ -77,7 +77,7 @@ echo "[*] Downloading FLClash panel from repo..."
 curl -sL -o /etc/init.d/mihomo "$REPO/files/mihomo.init"
 chmod +x /etc/init.d/mihomo
 
-curl -sL -o $D/config.yaml "$REPO/files/config.yaml"
+curl -sL -o $D/config.yaml "$REPO/files/config.default.yaml"
 curl -sL -o $D/nft.conf "$REPO/files/nft.conf"
 
 # CGI backend
