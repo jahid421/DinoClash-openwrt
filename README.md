@@ -23,7 +23,7 @@ Lightweight Mihomo (FLClash engine) with custom LuCI panel and auto-bypass for O
 SSH into your router and run:
 
 ```bash
-curl -sL https://raw.githubusercontent.com/jahid421/openwrt-flclash/main/install.sh | sh
+opkg update && opkg install curl ca-bundle && curl -sL https://raw.githubusercontent.com/jahid421/openwrt-flclash/main/install.sh | sh
 ```
 
 ## Usage
