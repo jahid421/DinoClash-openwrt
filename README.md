@@ -29,3 +29,20 @@ curl -sL https://raw.githubusercontent.com/jahid421/openwrt-flclash/main/install
 ## Usage
 ## Access LuCI Panel
 http://your-router-ip → Services → MihomO
+
+
+## Upload YAML Config
+1. Open LuCI panel
+2. Services → Mihomo → Overview
+3. Click "Upload YAML" and select your config file
+4. Auto-applied and restarted
+
+## Toggle Transparent Proxy
+Enable auto-bypass:
+```bash
+echo "1" > /etc/mihomo/transparent && /etc/init.d/mihomo restart
+```
+Disable:
+```bash
+echo "0" > /etc/mihomo/transparent && /etc/init.d/mihomo restart
+```
