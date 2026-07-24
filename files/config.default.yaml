@@ -1,0 +1,101 @@
+# ═══════════════════════════════════════════
+# Default FLClash config for OpenWrt
+# Upload your personal YAML via LuCI panel
+# ═══════════════════════════════════════════
+mixed-port: 7890
+allow-lan: true
+bind-address: '*'
+mode: rule
+log-level: warning
+ipv6: false
+external-controller: 0.0.0.0:9595
+external-ui: /etc/mihomo/ui
+secret: "flclash123"
+geodata-mode: true
+geo-auto-update: true
+find-process-mode: "off"
+global-client-fingerprint: chrome
+tcp-concurrent: true
+unified-delay: true
+
+profile:
+  store-selected: true
+  store-fake-ip: true
+
+sniffer:
+  enable: true
+  force-dns-mapping: true
+  parse-pure-ip: true
+  override-destination: true
+  sniff:
+    HTTP:
+      ports: [80, 8080-8880]
+      override-destination: true
+    TLS:
+      ports: [443, 8443]
+    QUIC:
+      ports: [443, 8443]
+
+tun:
+  enable: true
+  stack: system
+  device: utun
+  auto-route: true
+  auto-detect-interface: true
+  strict-route: false
+  mtu: 1500
+  dns-hijack:
+    - "any:53"
+  inet4-address:
+    - 172.19.0.1/30
+
+dns:
+  enable: true
+  listen: 0.0.0.0:1053
+  ipv6: false
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  fake-ip-filter:
+    - '*.lan'
+    - '*.local'
+    - '*.localhost'
+    - '+.arpa'
+    - 'dns.msftncsi.com'
+    - 'time.*'
+    - 'ntp.*'
+    - '+.pool.ntp.org'
+    - '*.msftconnecttest.com'
+    - '*.msftncsi.com'
+  default-nameserver:
+    - 223.5.5.5
+    - 1.1.1.1
+    - 8.8.8.8
+  nameserver:
+    - https://1.1.1.1/dns-query
+    - https://dns.google/dns-query
+  fallback:
+    - tls://1.1.1.1:853
+    - tls://dns.google:853
+
+proxies: []
+
+proxy-groups:
+  - name: "Proxy"
+    type: url-test
+    proxies:
+      - DIRECT
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+
+rules:
+  - 'IP-CIDR,192.168.0.0/16,DIRECT,no-resolve'
+  - 'IP-CIDR,10.0.0.0/8,DIRECT,no-resolve'
+  - 'IP-CIDR,172.16.0.0/12,DIRECT,no-resolve'
+  - 'IP-CIDR,127.0.0.0/8,DIRECT,no-resolve'
+  - 'IP-CIDR,100.64.0.0/10,DIRECT,no-resolve'
+  - 'IP-CIDR,224.0.0.0/4,DIRECT,no-resolve'
+  - 'DOMAIN-SUFFIX,local,DIRECT'
+  - 'DOMAIN-SUFFIX,lan,DIRECT'
+  - 'DST-PORT,9595,DIRECT'
+  - 'MATCH,Proxy'
