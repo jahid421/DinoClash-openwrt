@@ -1,15 +1,26 @@
 #!/bin/sh
 echo "Content-Type: text/plain"
 echo ""
+
 if [ "$REQUEST_METHOD" = "POST" ]; then
     TMP="/tmp/mhcfg_$$.yaml"
     cat > "$TMP"
+    
     if [ -s "$TMP" ]; then
+        # Auto-inject OpenWrt required settings
         grep -q '^external-controller:' "$TMP" || echo 'external-controller: 0.0.0.0:9595' >> "$TMP"
         grep -q '^external-ui:' "$TMP" || echo 'external-ui: /etc/mihomo/ui' >> "$TMP"
         grep -q '^secret:' "$TMP" || echo 'secret: "flclash123"' >> "$TMP"
+        grep -q '^mixed-port:' "$TMP" || sed -i '1i mixed-port: 7890' "$TMP"
+        grep -q '^allow-lan:' "$TMP" || sed -i '1i allow-lan: true' "$TMP"
+        
+        # Auto-convert load-balance round-robin to url-test (faster)
+        sed -i 's/strategy: round-robin/strategy: consistent-hashing/g' "$TMP"
+        
+        # Backup and apply
         cp /etc/mihomo/config.yaml /etc/mihomo/config.yaml.bak 2>/dev/null
         mv "$TMP" /etc/mihomo/config.yaml
+        
         /etc/init.d/mihomo restart >/dev/null 2>&1
         echo "SAVED"
     else
