@@ -1,4 +1,9 @@
 #!/bin/sh
+# ═══════════════════════════════════════════════
+# Smart Subscription Auto-Optimizer
+# Downloads + Auto-optimizes any subscription
+# ═══════════════════════════════════════════════
+
 echo "Content-Type: text/plain"
 echo ""
 
@@ -11,44 +16,168 @@ if [ -z "$URL" ]; then
     exit 0
 fi
 
-# Download subscription
-curl -sL --connect-timeout 20 --max-time 60 -o "$TMP" "$URL" 2>/dev/null
+# Download with browser-like headers (some subscriptions block curl)
+curl -sL \
+    --connect-timeout 20 \
+    --max-time 60 \
+    -H "User-Agent: Mihomo/1.18.10 (linux; amd64)" \
+    -H "Accept: */*" \
+    -o "$TMP" "$URL" 2>/dev/null
 
 if [ -s "$TMP" ]; then
-    # Auto-inject OpenWrt required settings
-    grep -q '^external-controller:' "$TMP" || echo 'external-controller: 0.0.0.0:9595' >> "$TMP"
-    grep -q '^external-ui:' "$TMP" || echo 'external-ui: /etc/mihomo/ui' >> "$TMP"
-    grep -q '^secret:' "$TMP" || echo 'secret: "flclash123"' >> "$TMP"
+    # Check if it's valid YAML (contains proxies/proxy-groups)
+    if ! grep -q "^proxies:\|^proxy-providers:" "$TMP"; then
+        rm -f "$TMP"
+        echo "INVALID_SUBSCRIPTION_FORMAT"
+        exit 0
+    fi
+    
+    # ═══════════════════════════════════════════
+    # LOW LATENCY OPTIMIZATION
+    # ═══════════════════════════════════════════
+    
+    # Convert load-balance to url-test
+    awk '
+    BEGIN { in_group=0 }
+    /^  - name:/ { in_group=1 }
+    /^[a-z]/ && !/^  / { in_group=0 }
+    {
+        if (/^    type: load-balance$/) {
+            print "    type: url-test"
+            next
+        }
+        if (in_group && /^    strategy:/) {
+            next
+        }
+        print
+    }
+    ' "$TMP" > "${TMP}.opt" && mv "${TMP}.opt" "$TMP"
+    
+    # Speed intervals
+    sed -i 's/interval: 300/interval: 180/g' "$TMP"
+    sed -i 's/interval: 600/interval: 180/g' "$TMP"
+    sed -i 's/tolerance: 50/tolerance: 30/g' "$TMP"
+    sed -i 's/tolerance: 100/tolerance: 30/g' "$TMP"
+    
+    # ═══════════════════════════════════════════
+    # Inject required OpenWrt settings
+    # ═══════════════════════════════════════════
     grep -q '^mixed-port:' "$TMP" || sed -i '1i mixed-port: 7890' "$TMP"
     grep -q '^redir-port:' "$TMP" || sed -i '1i redir-port: 7892' "$TMP"
     grep -q '^allow-lan:' "$TMP" || sed -i '1i allow-lan: true' "$TMP"
+    grep -q "^bind-address:" "$TMP" || sed -i "1i bind-address: '*'" "$TMP"
+    grep -q '^mode:' "$TMP" || sed -i '1i mode: rule' "$TMP"
+    grep -q '^log-level:' "$TMP" || sed -i '1i log-level: warning' "$TMP"
+    grep -q '^external-controller:' "$TMP" || echo 'external-controller: 0.0.0.0:9595' >> "$TMP"
+    grep -q '^external-ui:' "$TMP" || echo 'external-ui: /etc/mihomo/ui' >> "$TMP"
+    grep -q '^secret:' "$TMP" || echo 'secret: "flclash123"' >> "$TMP"
+    grep -q '^tcp-concurrent:' "$TMP" || echo 'tcp-concurrent: true' >> "$TMP"
+    grep -q '^unified-delay:' "$TMP" || echo 'unified-delay: true' >> "$TMP"
     
-    # Auto-optimize speed
-    sed -i 's/strategy: round-robin/strategy: consistent-hashing/g' "$TMP"
+    # Add sections if missing
+    if ! grep -q '^profile:' "$TMP"; then
+        printf '\nprofile:\n  store-selected: true\n  store-fake-ip: true\n' >> "$TMP"
+    fi
     
-    # Disable TUN (use redirect mode)
-    sed -i '/^tun:/,/^[a-z]/ s/^  enable: true$/  enable: false/' "$TMP"
+    if ! grep -q '^sniffer:' "$TMP"; then
+        cat >> "$TMP" << 'SEOF'
+
+sniffer:
+  enable: true
+  force-dns-mapping: true
+  parse-pure-ip: true
+  override-destination: true
+  sniff:
+    HTTP:
+      ports: [80, 8080-8880]
+      override-destination: true
+    TLS:
+      ports: [443, 8443]
+    QUIC:
+      ports: [443, 8443]
+SEOF
+    fi
     
-    # Detect LAN IP and add safety rule
+    if ! grep -q '^tun:' "$TMP"; then
+        cat >> "$TMP" << 'TEOF'
+
+tun:
+  enable: false
+  stack: system
+  device: utun
+  auto-route: true
+  auto-detect-interface: true
+  strict-route: false
+  mtu: 1500
+  dns-hijack:
+    - "any:53"
+  inet4-address:
+    - 172.19.0.1/30
+TEOF
+    else
+        sed -i '/^tun:/,/^[a-z]/ s/^  enable: true$/  enable: false/' "$TMP"
+    fi
+    
+    if ! grep -q '^dns:' "$TMP"; then
+        cat >> "$TMP" << 'DEOF'
+
+dns:
+  enable: true
+  listen: 0.0.0.0:1053
+  ipv6: false
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  fake-ip-filter:
+    - '*.lan'
+    - '*.local'
+    - '*.localhost'
+    - '+.arpa'
+    - 'dns.msftncsi.com'
+    - 'time.*'
+    - 'ntp.*'
+    - '+.pool.ntp.org'
+  default-nameserver:
+    - 223.5.5.5
+    - 1.1.1.1
+  nameserver:
+    - https://1.1.1.1/dns-query
+    - https://dns.google/dns-query
+  fallback:
+    - tls://1.1.1.1:853
+    - tls://dns.google:853
+DEOF
+    fi
+    
+    # LAN safety
     LAN_IP=$(uci -q get network.lan.ipaddr || echo "192.168.1.1")
     LAN_NET=$(echo "$LAN_IP" | awk -F. '{print $1"."$2"."$3".0/24"}')
     
-    if ! grep -q "$LAN_NET,DIRECT" "$TMP"; then
-        sed -i "/^rules:/a\\
+    if grep -q '^rules:' "$TMP"; then
+        sed -i '/192.168.87.0\/24,DIRECT/d' "$TMP"
+        sed -i '/192.168.64.0\/24,DIRECT/d' "$TMP"
+        
+        if ! grep -q "$LAN_NET,DIRECT" "$TMP"; then
+            sed -i "/^rules:/a\\
   - 'IP-CIDR,$LAN_NET,DIRECT,no-resolve'\\
   - 'DST-PORT,9595,DIRECT'" "$TMP"
+        fi
     fi
     
-    # Backup and apply
-    cp /etc/mihomo/config.yaml /etc/mihomo/config.yaml.bak 2>/dev/null
-    mv "$TMP" /etc/mihomo/config.yaml
-    
-    # Ensure transparent mode ON
-    echo "1" > /etc/mihomo/transparent
-    
-    /etc/init.d/mihomo restart >/dev/null 2>&1
-    echo "OK"
+    # ═══════════════════════════════════════════
+    # Validate before applying
+    # ═══════════════════════════════════════════
+    if /usr/bin/mihomo -d /etc/mihomo -f "$TMP" -t 2>/tmp/mhsub_err.log; then
+        cp /etc/mihomo/config.yaml /etc/mihomo/config.yaml.bak 2>/dev/null
+        mv "$TMP" /etc/mihomo/config.yaml
+        echo "1" > /etc/mihomo/transparent
+        /etc/init.d/mihomo restart >/dev/null 2>&1
+        echo "OK"
+    else
+        ERR=$(cat /tmp/mhsub_err.log 2>/dev/null | head -3)
+        rm -f "$TMP" /tmp/mhsub_err.log
+        echo "INVALID: $ERR"
+    fi
 else
     rm -f "$TMP"
-    echo "FAIL"
+    echo "DOWNLOAD_FAILED"
 fi
