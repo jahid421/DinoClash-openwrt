@@ -1,8 +1,6 @@
 #!/bin/sh
-# ═══════════════════════════════════════════════
-# Smart Subscription Auto-Optimizer
-# Downloads + Auto-optimizes any subscription
-# ═══════════════════════════════════════════════
+# Ultimate Subscription Auto-Optimizer
+# High Speed + Low Latency + Load Balance
 
 echo "Content-Type: text/plain"
 echo ""
@@ -16,7 +14,7 @@ if [ -z "$URL" ]; then
     exit 0
 fi
 
-# Download with browser-like headers (some subscriptions block curl)
+# Download with browser headers
 curl -sL \
     --connect-timeout 20 \
     --max-time 60 \
@@ -25,28 +23,24 @@ curl -sL \
     -o "$TMP" "$URL" 2>/dev/null
 
 if [ -s "$TMP" ]; then
-    # Check if it's valid YAML (contains proxies/proxy-groups)
+    # Validate
     if ! grep -q "^proxies:\|^proxy-providers:" "$TMP"; then
         rm -f "$TMP"
         echo "INVALID_SUBSCRIPTION_FORMAT"
         exit 0
     fi
     
-    # ═══════════════════════════════════════════
-    # LOW LATENCY OPTIMIZATION
-    # ═══════════════════════════════════════════
+    # Apply same optimizations as mihomo-cfg
+    # (Speed boost, low latency, load balance)
     
-    # Convert load-balance to url-test
+    # Convert strategy
     awk '
     BEGIN { in_group=0 }
     /^  - name:/ { in_group=1 }
     /^[a-z]/ && !/^  / { in_group=0 }
     {
-        if (/^    type: load-balance$/) {
-            print "    type: url-test"
-            next
-        }
-        if (in_group && /^    strategy:/) {
+        if (in_group && /^    strategy: round-robin$/) {
+            print "    strategy: consistent-hashing"
             next
         }
         print
@@ -59,9 +53,24 @@ if [ -s "$TMP" ]; then
     sed -i 's/tolerance: 50/tolerance: 30/g' "$TMP"
     sed -i 's/tolerance: 100/tolerance: 30/g' "$TMP"
     
-    # ═══════════════════════════════════════════
-    # Inject required OpenWrt settings
-    # ═══════════════════════════════════════════
+    # Add lazy
+    awk '
+    BEGIN { in_urltest=0; has_lazy=0 }
+    /^  - name:/ {
+        if (in_urltest && !has_lazy) print "    lazy: true"
+        in_urltest=0; has_lazy=0
+    }
+    /^    type: url-test/ { in_urltest=1 }
+    /^    lazy:/ { has_lazy=1 }
+    /^[a-z]/ && !/^  / {
+        if (in_urltest && !has_lazy) print "    lazy: true"
+        in_urltest=0; has_lazy=0
+    }
+    { print }
+    END { if (in_urltest && !has_lazy) print "    lazy: true" }
+    ' "$TMP" > "${TMP}.lazy" && mv "${TMP}.lazy" "$TMP"
+    
+    # Required settings
     grep -q '^mixed-port:' "$TMP" || sed -i '1i mixed-port: 7890' "$TMP"
     grep -q '^redir-port:' "$TMP" || sed -i '1i redir-port: 7892' "$TMP"
     grep -q '^allow-lan:' "$TMP" || sed -i '1i allow-lan: true' "$TMP"
@@ -73,8 +82,9 @@ if [ -s "$TMP" ]; then
     grep -q '^secret:' "$TMP" || echo 'secret: "flclash123"' >> "$TMP"
     grep -q '^tcp-concurrent:' "$TMP" || echo 'tcp-concurrent: true' >> "$TMP"
     grep -q '^unified-delay:' "$TMP" || echo 'unified-delay: true' >> "$TMP"
+    grep -q '^keep-alive-interval:' "$TMP" || echo 'keep-alive-interval: 30' >> "$TMP"
     
-    # Add sections if missing
+    # Sections
     if ! grep -q '^profile:' "$TMP"; then
         printf '\nprofile:\n  store-selected: true\n  store-fake-ip: true\n' >> "$TMP"
     fi
@@ -163,13 +173,12 @@ DEOF
         fi
     fi
     
-    # ═══════════════════════════════════════════
-    # Validate before applying
-    # ═══════════════════════════════════════════
+    # Validate
     if /usr/bin/mihomo -d /etc/mihomo -f "$TMP" -t 2>/tmp/mhsub_err.log; then
         cp /etc/mihomo/config.yaml /etc/mihomo/config.yaml.bak 2>/dev/null
         mv "$TMP" /etc/mihomo/config.yaml
         echo "1" > /etc/mihomo/transparent
+        echo "1" > /etc/mihomo/enabled
         /etc/init.d/mihomo restart >/dev/null 2>&1
         echo "OK"
     else
