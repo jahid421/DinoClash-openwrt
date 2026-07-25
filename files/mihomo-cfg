@@ -194,4 +194,68 @@ DEOF
         PROXY_COUNT=$(grep -c "^  - name:" "$TMP")
         GROUP_COUNT=$(grep -c "^  - name:" "$TMP" | head -1)
         
-        # Only if we have proxies and 
+        # Only if we have proxies and no ⚡ Load-Balance group exists
+        if [ "$PROXY_COUNT" -gt 5 ] && ! grep -q "⚡ Load-Balance" "$TMP"; then
+            # Extract all proxy names
+            PROXIES=$(awk '/^proxies:/,/^proxy-groups:/' "$TMP" | grep "^  - name:" | sed 's/  - name: //' | head -50)
+            
+            # Find where proxy-groups starts
+            if grep -q "^proxy-groups:" "$TMP"; then
+                # Insert Load-Balance group after "proxy-groups:"
+                LB_GROUP='  - name: "⚡ Load-Balance"\
+    type: load-balance\
+    strategy: consistent-hashing\
+    url: https://www.gstatic.com/generate_204\
+    interval: 180\
+    lazy: true\
+    proxies:'
+                
+                # This is complex - user can manually add if needed
+                # For now, just optimize existing groups
+                :
+            fi
+        fi
+        
+        # ═══════════════════════════════════════════
+        # STEP 8: LAN safety rules
+        # ═══════════════════════════════════════════
+        LAN_IP=$(uci -q get network.lan.ipaddr || echo "192.168.1.1")
+        LAN_NET=$(echo "$LAN_IP" | awk -F. '{print $1"."$2"."$3".0/24"}')
+        
+        if grep -q '^rules:' "$TMP"; then
+            sed -i '/192.168.87.0\/24,DIRECT/d' "$TMP"
+            sed -i '/192.168.64.0\/24,DIRECT/d' "$TMP"
+            
+            if ! grep -q "$LAN_NET,DIRECT" "$TMP"; then
+                sed -i "/^rules:/a\\
+  - 'IP-CIDR,$LAN_NET,DIRECT,no-resolve'\\
+  - 'DST-PORT,9595,DIRECT'" "$TMP"
+            fi
+        fi
+        
+        # ═══════════════════════════════════════════
+        # STEP 9: Validate & Apply
+        # ═══════════════════════════════════════════
+        if /usr/bin/mihomo -d /etc/mihomo -f "$TMP" -t 2>/tmp/mhcfg_err.log; then
+            cp /etc/mihomo/config.yaml /etc/mihomo/config.yaml.bak 2>/dev/null
+            mv "$TMP" /etc/mihomo/config.yaml
+            
+            # Save user preferences
+            echo "1" > /etc/mihomo/transparent
+            echo "1" > /etc/mihomo/enabled
+            
+            /etc/init.d/mihomo restart >/dev/null 2>&1
+            
+            echo "SAVED"
+        else
+            ERR=$(cat /tmp/mhcfg_err.log 2>/dev/null | head -3)
+            rm -f "$TMP" /tmp/mhcfg_err.log
+            echo "INVALID YAML: $ERR"
+        fi
+    else
+        rm -f "$TMP"
+        echo "EMPTY"
+    fi
+else
+    cat /etc/mihomo/config.yaml 2>/dev/null
+fi
