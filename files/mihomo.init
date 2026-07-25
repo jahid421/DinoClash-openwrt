@@ -4,8 +4,25 @@ START=99
 STOP=10
 
 TRANSPARENT_FILE="/etc/mihomo/transparent"
+ENABLED_FILE="/etc/mihomo/enabled"
+
+# Check if user wants mihomo to auto-start
+should_start() {
+    # Default: enabled (1)
+    # If enabled file says "0", don't auto-start
+    if [ -f "$ENABLED_FILE" ] && [ "$(cat $ENABLED_FILE)" = "0" ]; then
+        return 1
+    fi
+    return 0
+}
 
 start_service() {
+    # Check if enabled by user
+    if ! should_start; then
+        logger -t mihomo "Mihomo is disabled by user, not starting"
+        return 0
+    fi
+    
     procd_open_instance mihomo
     procd_set_param command /usr/bin/mihomo -d /etc/mihomo
     procd_set_param respawn 3600 5 5
@@ -20,10 +37,13 @@ start_service() {
     if [ -f "$TRANSPARENT_FILE" ] && [ "$(cat $TRANSPARENT_FILE)" = "1" ]; then
         setup_transparent
     fi
+    
+    logger -t mihomo "Mihomo started (user preference: enabled)"
 }
 
 stop_service() {
     cleanup_transparent
+    logger -t mihomo "Mihomo stopped"
 }
 
 setup_transparent() {
@@ -33,7 +53,7 @@ setup_transparent() {
     # Update nft.conf with detected LAN interface
     sed -i "s/iifname != \"[^\"]*\"/iifname != \"$LAN_IF\"/g" /etc/mihomo/nft.conf 2>/dev/null
     
-    # Apply firewall rules (Redirect mode)
+    # Apply firewall rules
     nft -f /etc/mihomo/nft.conf 2>/dev/null || true
 }
 
