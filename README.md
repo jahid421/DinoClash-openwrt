@@ -17,11 +17,22 @@ Lightweight FLClash-like Mihomo panel for OpenWrt routers with auto-bypass. Cust
 
 ## 🚀 Installation
 
-SSH into your router and run:
+SSH into your router and run this **one-line command**:
 
+    opkg update && opkg install curl ca-bundle ca-certificates && curl -sL https://raw.githubusercontent.com/jahid421/openwrt-flclash/main/install.sh | sh
+
+**Or step by step:**
+
+    # Step 1: Update package list
+    opkg update
+    
+    # Step 2: Install curl
+    opkg install curl ca-bundle ca-certificates
+    
+    # Step 3: Run installer
     curl -sL https://raw.githubusercontent.com/jahid421/openwrt-flclash/main/install.sh | sh
 
-Or with wget:
+**Or with wget (if curl fails):**
 
     wget -qO- https://raw.githubusercontent.com/jahid421/openwrt-flclash/main/install.sh | sh
 
