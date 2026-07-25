@@ -77,12 +77,12 @@ td{padding:6px 8px;border-bottom:1px solid #f1f5f9;font-size:12px}
 </div>
 
 <div class="card">
-<div class="title">Transparent Proxy</div>
+<div class="title">Auto-Bypass (Transparent Proxy)</div>
 <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
-<div class="sm">When ON: All devices auto-use proxy. When OFF: Manual proxy only (7890).</div>
+<div class="sm">When ON: All devices auto-use proxy (no device setup needed).</div>
 <button class="btn b3" id="tpbtn" onclick="toggleTP()">Loading...</button>
 </div>
-<div class="warn">⚠️ If internet breaks after enabling, click again to disable. Test on a few sites first.</div>
+<div class="warn">⚠️ If internet breaks after enabling, click again to disable. Uses Redirect mode (OpenClash-style).</div>
 </div>
 
 <div class="card">
@@ -132,10 +132,10 @@ td{padding:6px 8px;border-bottom:1px solid #f1f5f9;font-size:12px}
 
 <div class="card">
 <div class="title">Info</div>
-<div class="ir"><span>Core</span><span id="iv">-</span></div>
-<div class="ir"><span>Mode</span><span id="im">-</span></div>
-<div class="ir"><span>Port</span><span id="ip">-</span></div>
-<div class="ir"><span>DNS</span><span id="id">-</span></div>
+<div class="ir"><span>Core</span><span id="iver">-</span></div>
+<div class="ir"><span>Mode</span><span id="imode">-</span></div>
+<div class="ir"><span>Port</span><span id="iport">-</span></div>
+<div class="ir"><span>DNS</span><span id="idns">-</span></div>
 <div class="ir"><span>Secret</span><span>flclash123</span></div>
 <div class="ir"><span>Manual Proxy</span><span id="mp">-</span></div>
 </div>
@@ -213,14 +213,7 @@ function pf(el){if(!el.files.length)return;document.getElementById('fname').inne
 
 function dup(){
   if(!yc){alert('Select file');return}
-  var b=yc;
-  if(!/^external-controller:/m.test(b))b+='\nexternal-controller: 0.0.0.0:9595\n';
-  if(!/^external-ui:/m.test(b))b+='external-ui: /etc/mihomo/ui\n';
-  if(!/^secret:/m.test(b))b+='secret: "flclash123"\n';
-  if(!/^mixed-port:/m.test(b))b='mixed-port: 7890\n'+b;
-  if(!/^tproxy-port:/m.test(b))b='tproxy-port: 7893\n'+b;
-  if(!/^allow-lan:/m.test(b))b='allow-lan: true\n'+b;
-  fetch('/cgi-bin/mihomo-cfg',{method:'POST',body:b}).then(function(r){return r.text()}).then(function(t){
+  fetch('/cgi-bin/mihomo-cfg',{method:'POST',body:yc}).then(function(r){return r.text()}).then(function(t){
     alert(t.indexOf('SAVED')>=0?'Uploaded & Applied!':'Error: '+t);
     setTimeout(function(){chk();gc()},3000);
   }).catch(function(){alert('Failed')});
@@ -251,22 +244,22 @@ function chk(){
       updateTPBtn(d?d.transparent:0);
     }
   }).catch(function(){});
-  af('/version').then(function(d){if(d)document.getElementById('iv').innerText=d.version||'-'});
+  af('/version').then(function(d){if(d)document.getElementById('iver').innerText=d.version||'-'});
   document.getElementById('mp').innerText=location.hostname+':7890';
 }
 
 function updateTPBtn(tp){
   var btn=document.getElementById('tpbtn');
   if(!btn)return;
-  if(tp==1){btn.innerText='Transparent: ON';btn.className='btn b1'}
-  else{btn.innerText='Transparent: OFF';btn.className='btn b3'}
+  if(tp==1){btn.innerText='Auto-Bypass: ON';btn.className='btn b1'}
+  else{btn.innerText='Auto-Bypass: OFF';btn.className='btn b3'}
 }
 
 function toggleTP(){
   var btn=document.getElementById('tpbtn');
   var isOn=btn.innerText.indexOf('ON')>=0;
   var action=isOn?'disable_tp':'enable_tp';
-  if(!isOn && !confirm('⚠️ Enable Transparent Proxy?\n\n• All devices will auto-use proxy\n• Internet may break if proxies are slow\n• Click again to disable if problem\n\nContinue?'))return;
+  if(!isOn && !confirm('⚠️ Enable Auto-Bypass?\n\n• All devices will auto-use proxy\n• Uses OpenClash-style Redirect mode\n• Click again to disable if problem\n\nContinue?'))return;
   btn.innerText='Please wait...';
   fetch('/cgi-bin/mihomo-api?action='+action).then(function(r){return r.json()}).then(function(d){
     setTimeout(function(){chk();gc()},5000);
@@ -276,9 +269,9 @@ function toggleTP(){
 function gc(){
   af('/configs').then(function(d){
     if(!d)return;
-    document.getElementById('im').innerText=d.mode||'-';
-    document.getElementById('ip').innerText=d['mixed-port']||'-';
-    document.getElementById('id').innerText=d.dns?(d.dns['enhanced-mode']||'-'):'-';
+    document.getElementById('imode').innerText=d.mode||'-';
+    document.getElementById('iport').innerText=d['mixed-port']||'-';
+    document.getElementById('idns').innerText=d.dns?(d.dns['enhanced-mode']||'-'):'-';
     ['rule','global','direct'].forEach(function(m){document.getElementById('m-'+m).classList.remove('ac')});
     var b=document.getElementById('m-'+(d.mode||'rule'));
     if(b)b.classList.add('ac');
@@ -395,7 +388,7 @@ function cnf(){var q=document.getElementById('cnq').value.toLowerCase();document
 
 var ll=[],lfi='all';
 function lf(f,b){lfi=f;document.querySelectorAll('.fb').forEach(function(x){x.classList.remove('ac')});b.classList.add('ac');lr()}
-function lr(){var b=document.getElementById('llb');var fl=lfi==='all'?ll:ll.filter(function(l){return l.type.toLowerCase()===lfi});var h='';fl.forEach(function(l){h+='<div class="l'+l.type.charAt(0).toLowerCase()+'">['+l.type+'] '+l.payload+'</div>'});b.innerHTML=h||'<div style="color:#64748b;text-align:center;padding:40px">Waiting...</div>';b.scrollTop=b.scrollHeight}
+function lr(){var b=document.getElementById('llb');var fl=lfi==='all'?ll:ll.filter(function(l){return l.type.toLowerCase()===lfi});var h='';fl.forEach(function(l){h+='<div class="l'+l.type.charAt(0).toLowerCase()+'">['+l.type+'] '+l.payload+'</div>'});b.innerHTML=h||'<div style="color:#64748b;text-align:center;padding:40px">Waiting for logs...</div>';b.scrollTop=b.scrollHeight}
 function lw(){try{var ws=new WebSocket('ws://'+location.hostname+':9595/logs?token='+S+'&level=debug');ws.onmessage=function(e){var d=JSON.parse(e.data);ll.push(d);if(ll.length>500)ll.shift();lr()};ws.onclose=function(){setTimeout(lw,3000)}}catch(e){setTimeout(lw,5000)}}
 
 chk();gc();gn();sw();lw();
