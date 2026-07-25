@@ -1,8 +1,10 @@
 # ═══════════════════════════════════════════
-# Default FLClash config for OpenWrt
+# Default FLClash Config for OpenWrt
+# Redirect Mode (OpenClash-style)
 # Upload your personal YAML via LuCI panel
 # ═══════════════════════════════════════════
 mixed-port: 7890
+redir-port: 7892
 allow-lan: true
 bind-address: '*'
 mode: rule
@@ -36,8 +38,9 @@ sniffer:
     QUIC:
       ports: [443, 8443]
 
+# TUN disabled - Redirect mode used instead (better compatibility)
 tun:
-  enable: true
+  enable: false
   stack: system
   device: utun
   auto-route: true
