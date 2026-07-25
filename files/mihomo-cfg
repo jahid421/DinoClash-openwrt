@@ -1,4 +1,9 @@
 #!/bin/sh
+# ═══════════════════════════════════════════════
+# Smart YAML Auto-Optimizer for FLClash
+# Auto-converts any YAML to low-latency version
+# ═══════════════════════════════════════════════
+
 echo "Content-Type: text/plain"
 echo ""
 
@@ -7,38 +12,189 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
     cat > "$TMP"
     
     if [ -s "$TMP" ]; then
-        # Auto-inject OpenWrt required settings
-        grep -q '^external-controller:' "$TMP" || echo 'external-controller: 0.0.0.0:9595' >> "$TMP"
-        grep -q '^external-ui:' "$TMP" || echo 'external-ui: /etc/mihomo/ui' >> "$TMP"
-        grep -q '^secret:' "$TMP" || echo 'secret: "flclash123"' >> "$TMP"
+        # ═══════════════════════════════════════════
+        # STEP 1: Inject OpenWrt required settings
+        # ═══════════════════════════════════════════
         grep -q '^mixed-port:' "$TMP" || sed -i '1i mixed-port: 7890' "$TMP"
         grep -q '^redir-port:' "$TMP" || sed -i '1i redir-port: 7892' "$TMP"
         grep -q '^allow-lan:' "$TMP" || sed -i '1i allow-lan: true' "$TMP"
+        grep -q "^bind-address:" "$TMP" || sed -i "1i bind-address: '*'" "$TMP"
+        grep -q '^mode:' "$TMP" || sed -i '1i mode: rule' "$TMP"
+        grep -q '^log-level:' "$TMP" || sed -i '1i log-level: warning' "$TMP"
+        grep -q '^ipv6:' "$TMP" || sed -i '1i ipv6: false' "$TMP"
+        grep -q '^external-controller:' "$TMP" || echo 'external-controller: 0.0.0.0:9595' >> "$TMP"
+        grep -q '^external-ui:' "$TMP" || echo 'external-ui: /etc/mihomo/ui' >> "$TMP"
+        grep -q '^secret:' "$TMP" || echo 'secret: "flclash123"' >> "$TMP"
+        grep -q '^geodata-mode:' "$TMP" || echo 'geodata-mode: true' >> "$TMP"
+        grep -q '^find-process-mode:' "$TMP" || echo 'find-process-mode: "off"' >> "$TMP"
+        grep -q '^global-client-fingerprint:' "$TMP" || echo 'global-client-fingerprint: chrome' >> "$TMP"
+        grep -q '^tcp-concurrent:' "$TMP" || echo 'tcp-concurrent: true' >> "$TMP"
+        grep -q '^unified-delay:' "$TMP" || echo 'unified-delay: true' >> "$TMP"
+        grep -q '^keep-alive-interval:' "$TMP" || echo 'keep-alive-interval: 30' >> "$TMP"
         
-        # Auto-optimize speed (round-robin → consistent-hashing)
-        sed -i 's/strategy: round-robin/strategy: consistent-hashing/g' "$TMP"
+        # ═══════════════════════════════════════════
+        # STEP 2: Add profile section if missing
+        # ═══════════════════════════════════════════
+        if ! grep -q '^profile:' "$TMP"; then
+            cat >> "$TMP" << 'PEOF'
+
+profile:
+  store-selected: true
+  store-fake-ip: true
+PEOF
+        fi
         
-        # Disable TUN if enabled (use redirect mode instead - better for all routers)
-        sed -i '/^tun:/,/^[a-z]/ s/^  enable: true$/  enable: false/' "$TMP"
+        # ═══════════════════════════════════════════
+        # STEP 3: Add sniffer if missing
+        # ═══════════════════════════════════════════
+        if ! grep -q '^sniffer:' "$TMP"; then
+            cat >> "$TMP" << 'SEOF'
+
+sniffer:
+  enable: true
+  force-dns-mapping: true
+  parse-pure-ip: true
+  override-destination: true
+  sniff:
+    HTTP:
+      ports: [80, 8080-8880]
+      override-destination: true
+    TLS:
+      ports: [443, 8443]
+    QUIC:
+      ports: [443, 8443]
+SEOF
+        fi
         
-        # Detect LAN IP and add safety rule
+        # ═══════════════════════════════════════════
+        # STEP 4: Add/Fix TUN section (disabled - use redirect)
+        # ═══════════════════════════════════════════
+        if ! grep -q '^tun:' "$TMP"; then
+            cat >> "$TMP" << 'TEOF'
+
+tun:
+  enable: false
+  stack: system
+  device: utun
+  auto-route: true
+  auto-detect-interface: true
+  strict-route: false
+  mtu: 1500
+  dns-hijack:
+    - "any:53"
+  inet4-address:
+    - 172.19.0.1/30
+TEOF
+        else
+            # Force disable TUN (use redirect mode instead)
+            sed -i '/^tun:/,/^[a-z]/ s/^  enable: true$/  enable: false/' "$TMP"
+        fi
+        
+        # ═══════════════════════════════════════════
+        # STEP 5: Add DNS if missing
+        # ═══════════════════════════════════════════
+        if ! grep -q '^dns:' "$TMP"; then
+            cat >> "$TMP" << 'DEOF'
+
+dns:
+  enable: true
+  listen: 0.0.0.0:1053
+  ipv6: false
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  fake-ip-filter:
+    - '*.lan'
+    - '*.local'
+    - '*.localhost'
+    - '+.arpa'
+    - 'dns.msftncsi.com'
+    - 'time.*'
+    - 'ntp.*'
+    - '+.pool.ntp.org'
+    - '*.msftconnecttest.com'
+    - '*.msftncsi.com'
+  default-nameserver:
+    - 223.5.5.5
+    - 1.1.1.1
+    - 8.8.8.8
+  nameserver:
+    - https://1.1.1.1/dns-query
+    - https://dns.google/dns-query
+  fallback:
+    - tls://1.1.1.1:853
+    - tls://dns.google:853
+DEOF
+        fi
+        
+        # ═══════════════════════════════════════════
+        # STEP 6: LOW LATENCY OPTIMIZATION 🚀
+        # ═══════════════════════════════════════════
+        
+        # Convert slow load-balance to fast url-test
+        sed -i 's/type: load-balance/type: url-test/g' "$TMP"
+        
+        # Remove strategy (url-test doesn't need it)
+        sed -i '/^    strategy: round-robin$/d' "$TMP"
+        sed -i '/^    strategy: consistent-hashing$/d' "$TMP"
+        
+        # Speed up test interval (300s → 180s)
+        sed -i 's/interval: 300/interval: 180/g' "$TMP"
+        sed -i 's/interval: 600/interval: 180/g' "$TMP"
+        
+        # Faster tolerance (50ms → 30ms)
+        sed -i 's/tolerance: 50/tolerance: 30/g' "$TMP"
+        
+        # Add lazy: true to url-test groups (skip dead proxies)
+        awk '
+        /type: url-test/ {print; in_url_test=1; lazy_added=0; next}
+        in_url_test && /^    lazy:/ {lazy_added=1}
+        in_url_test && /^  - name:|^[a-z]/ {
+            if (!lazy_added && in_url_test == 1) {
+                # already printed url-test, but no lazy before new group
+            }
+            in_url_test=0
+        }
+        in_url_test && /^    proxies:/ && !lazy_added {
+            print "    lazy: true"
+            lazy_added=1
+        }
+        {print}
+        ' "$TMP" > "${TMP}.new" && mv "${TMP}.new" "$TMP"
+        
+        # ═══════════════════════════════════════════
+        # STEP 7: Add UDP support to proxies missing it
+        # ═══════════════════════════════════════════
+        # (Optional - only for socks5 without udp)
+        
+        # ═══════════════════════════════════════════
+        # STEP 8: LAN safety rules
+        # ═══════════════════════════════════════════
         LAN_IP=$(uci -q get network.lan.ipaddr || echo "192.168.1.1")
         LAN_NET=$(echo "$LAN_IP" | awk -F. '{print $1"."$2"."$3".0/24"}')
         
-        if ! grep -q "$LAN_NET,DIRECT" "$TMP"; then
-            sed -i "/^rules:/a\\
+        if grep -q '^rules:' "$TMP"; then
+            # Remove old VM IPs
+            sed -i '/192.168.87.0\/24/d' "$TMP"
+            sed -i '/192.168.64.0\/24/d' "$TMP"
+            
+            # Add current LAN + safety rules at top
+            if ! grep -q "$LAN_NET,DIRECT" "$TMP"; then
+                sed -i "/^rules:/a\\
   - 'IP-CIDR,$LAN_NET,DIRECT,no-resolve'\\
   - 'DST-PORT,9595,DIRECT'" "$TMP"
+            fi
         fi
         
-        # Backup and apply
+        # ═══════════════════════════════════════════
+        # STEP 9: Backup and apply
+        # ═══════════════════════════════════════════
         cp /etc/mihomo/config.yaml /etc/mihomo/config.yaml.bak 2>/dev/null
         mv "$TMP" /etc/mihomo/config.yaml
         
-        # Ensure transparent mode ON
+        # Ensure transparent mode ON (Redirect mode)
         echo "1" > /etc/mihomo/transparent
         
-        # Restart mihomo (redirect mode auto-applies)
+        # Restart mihomo
         /etc/init.d/mihomo restart >/dev/null 2>&1
         
         echo "SAVED"
