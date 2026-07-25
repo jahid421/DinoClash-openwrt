@@ -4,33 +4,46 @@ echo ""
 
 ACTION=$(echo "$QUERY_STRING" | sed -n 's/.*action=\([a-z_]*\).*/\1/p')
 TRANSPARENT_FILE="/etc/mihomo/transparent"
+ENABLED_FILE="/etc/mihomo/enabled"
 
 case "$ACTION" in
   status)
+    ENABLED="1"
+    [ -f "$ENABLED_FILE" ] && ENABLED=$(cat $ENABLED_FILE)
+    TP="0"
+    [ -f "$TRANSPARENT_FILE" ] && TP=$(cat $TRANSPARENT_FILE)
+    
     if pgrep -f "/usr/bin/mihomo" >/dev/null 2>&1; then
       PID=$(pgrep -f "/usr/bin/mihomo" | head -n 1)
       MEM=$(awk '/VmRSS/{print $2}' /proc/$PID/status 2>/dev/null)
       [ -z "$MEM" ] && MEM=0
-      TP="0"
-      [ -f "$TRANSPARENT_FILE" ] && TP=$(cat $TRANSPARENT_FILE)
-      echo "{\"running\":true,\"pid\":$PID,\"memory\":\"${MEM} kB\",\"transparent\":$TP}"
+      echo "{\"running\":true,\"pid\":$PID,\"memory\":\"${MEM} kB\",\"transparent\":$TP,\"enabled\":$ENABLED}"
     else
-      TP="0"
-      [ -f "$TRANSPARENT_FILE" ] && TP=$(cat $TRANSPARENT_FILE)
-      echo "{\"running\":false,\"transparent\":$TP}"
+      echo "{\"running\":false,\"transparent\":$TP,\"enabled\":$ENABLED}"
     fi
     ;;
   start)
+    # User wants to start - save preference
+    mkdir -p /etc/mihomo
+    echo "1" > $ENABLED_FILE
+    /etc/init.d/mihomo enable >/dev/null 2>&1
     /etc/init.d/mihomo start >/dev/null 2>&1
-    echo "{\"ok\":true}"
+    echo "{\"ok\":true,\"enabled\":1}"
     ;;
   stop)
+    # User wants to stop - save preference
+    mkdir -p /etc/mihomo
+    echo "0" > $ENABLED_FILE
     /etc/init.d/mihomo stop >/dev/null 2>&1
-    echo "{\"ok\":true}"
+    echo "{\"ok\":true,\"enabled\":0}"
     ;;
   restart)
+    # Restart doesn't change enabled state
+    mkdir -p /etc/mihomo
+    echo "1" > $ENABLED_FILE
+    /etc/init.d/mihomo enable >/dev/null 2>&1
     /etc/init.d/mihomo restart >/dev/null 2>&1
-    echo "{\"ok\":true}"
+    echo "{\"ok\":true,\"enabled\":1}"
     ;;
   enable_tp)
     mkdir -p /etc/mihomo
