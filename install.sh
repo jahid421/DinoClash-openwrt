@@ -170,8 +170,8 @@ echo "[✓] Mihomo installed: $(/usr/bin/mihomo -v 2>&1 | head -1)"
 # ═══════════════════════════════════════════════
 mkdir -p $D/profiles $D/providers $D/ruleset $D/ui $D/scripts
 
-# Enable transparent proxy by default (Redirect mode)
-echo "1" > $D/transparent
+# Enable mihomo by default (user can disable via Stop button)
+echo "1" > $D/enabled
 
 # ═══════════════════════════════════════════════
 # Download GeoIP databases
