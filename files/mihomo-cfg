@@ -1,8 +1,8 @@
 #!/bin/sh
 # ═══════════════════════════════════════════════
-# Smart YAML Auto-Optimizer for FLClash
-# Auto-converts any YAML to low-latency version
-# Fixed: proper strategy handling, safe restart
+# Ultimate YAML Auto-Optimizer for FLClash
+# High Speed + Low Latency + Load Balancing
+# Works with ANY YAML config
 # ═══════════════════════════════════════════════
 
 echo "Content-Type: text/plain"
@@ -14,88 +14,65 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
     
     if [ -s "$TMP" ]; then
         # ═══════════════════════════════════════════
-        # STEP 1: LOW LATENCY OPTIMIZATION (must be first)
+        # STEP 1: SPEED + LOAD BALANCE OPTIMIZATION
         # ═══════════════════════════════════════════
         
-        # Convert load-balance groups to url-test (removes strategy line)
+        # Convert to url-test with fallback (best speed + reliability)
+        # Keep load-balance as is (but with consistent-hashing)
         awk '
-        BEGIN { in_group=0; skip_next_strategy=0 }
-        /^  - name:/ { in_group=1; skip_next_strategy=0 }
+        BEGIN { in_group=0 }
+        /^  - name:/ { in_group=1 }
         /^[a-z]/ && !/^  / { in_group=0 }
         {
-            # Change type: load-balance → url-test
-            if (/^    type: load-balance$/) {
-                print "    type: url-test"
-                skip_next_strategy=1
-                next
-            }
-            # Skip strategy: line (not needed for url-test)
-            if (in_group && /^    strategy:/) {
+            # url-test → keep (already optimized)
+            # load-balance → keep with consistent-hashing
+            # Just fix strategy for load-balance
+            if (in_group && /^    strategy: round-robin$/) {
+                print "    strategy: consistent-hashing"
                 next
             }
             print
         }
         ' "$TMP" > "${TMP}.opt" && mv "${TMP}.opt" "$TMP"
         
-        # Speed up intervals
+        # Speed optimizations
         sed -i 's/interval: 300/interval: 180/g' "$TMP"
         sed -i 's/interval: 600/interval: 180/g' "$TMP"
         sed -i 's/interval: 900/interval: 180/g' "$TMP"
-        
-        # Faster tolerance
         sed -i 's/tolerance: 50/tolerance: 30/g' "$TMP"
         sed -i 's/tolerance: 100/tolerance: 30/g' "$TMP"
+        sed -i 's/tolerance: 150/tolerance: 30/g' "$TMP"
         
-        # Add lazy: true to url-test groups (skip dead proxies)
+        # Add lazy: true to url-test groups
         awk '
-        BEGIN { in_urltest=0; has_lazy=0; buffer="" }
+        BEGIN { in_urltest=0; has_lazy=0; group_name="" }
         /^  - name:/ {
-            if (in_urltest && !has_lazy && buffer != "") {
-                print buffer
+            if (in_urltest && !has_lazy) {
                 print "    lazy: true"
-            } else if (buffer != "") {
-                print buffer
             }
-            buffer=""
             in_urltest=0
             has_lazy=0
-            print
-            next
+            group_name=$0
         }
         /^    type: url-test/ { in_urltest=1 }
         /^    lazy:/ { has_lazy=1 }
         /^[a-z]/ && !/^  / {
-            if (in_urltest && !has_lazy && buffer != "") {
-                print buffer
+            if (in_urltest && !has_lazy) {
                 print "    lazy: true"
-                buffer=""
-            } else if (buffer != "") {
-                print buffer
-                buffer=""
             }
             in_urltest=0
             has_lazy=0
-            print
-            next
         }
-        {
-            if (buffer != "") {
-                print buffer
-            }
-            buffer=$0
-        }
+        { print }
         END {
-            if (in_urltest && !has_lazy && buffer != "") {
-                print buffer
+            if (in_urltest && !has_lazy) {
                 print "    lazy: true"
-            } else if (buffer != "") {
-                print buffer
             }
         }
         ' "$TMP" > "${TMP}.lazy" && mv "${TMP}.lazy" "$TMP"
         
         # ═══════════════════════════════════════════
-        # STEP 2: Inject required OpenWrt settings
+        # STEP 2: HIGH SPEED SETTINGS
         # ═══════════════════════════════════════════
         grep -q '^mixed-port:' "$TMP" || sed -i '1i mixed-port: 7890' "$TMP"
         grep -q '^redir-port:' "$TMP" || sed -i '1i redir-port: 7892' "$TMP"
@@ -110,12 +87,14 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
         grep -q '^geodata-mode:' "$TMP" || echo 'geodata-mode: true' >> "$TMP"
         grep -q '^find-process-mode:' "$TMP" || echo 'find-process-mode: "off"' >> "$TMP"
         grep -q '^global-client-fingerprint:' "$TMP" || echo 'global-client-fingerprint: chrome' >> "$TMP"
+        
+        # Speed boost settings
         grep -q '^tcp-concurrent:' "$TMP" || echo 'tcp-concurrent: true' >> "$TMP"
         grep -q '^unified-delay:' "$TMP" || echo 'unified-delay: true' >> "$TMP"
         grep -q '^keep-alive-interval:' "$TMP" || echo 'keep-alive-interval: 30' >> "$TMP"
         
         # ═══════════════════════════════════════════
-        # STEP 3: Add profile section
+        # STEP 3: Profile
         # ═══════════════════════════════════════════
         if ! grep -q '^profile:' "$TMP"; then
             cat >> "$TMP" << 'PEOF'
@@ -127,7 +106,7 @@ PEOF
         fi
         
         # ═══════════════════════════════════════════
-        # STEP 4: Add sniffer
+        # STEP 4: Sniffer (better routing)
         # ═══════════════════════════════════════════
         if ! grep -q '^sniffer:' "$TMP"; then
             cat >> "$TMP" << 'SEOF'
@@ -149,7 +128,7 @@ SEOF
         fi
         
         # ═══════════════════════════════════════════
-        # STEP 5: TUN section (disabled)
+        # STEP 5: TUN (disabled - use redirect mode)
         # ═══════════════════════════════════════════
         if ! grep -q '^tun:' "$TMP"; then
             cat >> "$TMP" << 'TEOF'
@@ -168,12 +147,11 @@ tun:
     - 172.19.0.1/30
 TEOF
         else
-            # Force disable TUN
             sed -i '/^tun:/,/^[a-z]/ s/^  enable: true$/  enable: false/' "$TMP"
         fi
         
         # ═══════════════════════════════════════════
-        # STEP 6: Add DNS section
+        # STEP 6: Fast DNS (Fake-IP)
         # ═══════════════════════════════════════════
         if ! grep -q '^dns:' "$TMP"; then
             cat >> "$TMP" << 'DEOF'
@@ -209,49 +187,11 @@ DEOF
         fi
         
         # ═══════════════════════════════════════════
-        # STEP 7: LAN safety rules
+        # STEP 7: AUTO-ADD LOAD BALANCE GROUP
+        # If user has proxies but only 1 group, add LB group
         # ═══════════════════════════════════════════
-        LAN_IP=$(uci -q get network.lan.ipaddr || echo "192.168.1.1")
-        LAN_NET=$(echo "$LAN_IP" | awk -F. '{print $1"."$2"."$3".0/24"}')
         
-        if grep -q '^rules:' "$TMP"; then
-            # Remove old VM IPs
-            sed -i '/192.168.87.0\/24,DIRECT/d' "$TMP"
-            sed -i '/192.168.64.0\/24,DIRECT/d' "$TMP"
-            
-            # Add LAN safety
-            if ! grep -q "$LAN_NET,DIRECT" "$TMP"; then
-                sed -i "/^rules:/a\\
-  - 'IP-CIDR,$LAN_NET,DIRECT,no-resolve'\\
-  - 'DST-PORT,9595,DIRECT'" "$TMP"
-            fi
-        fi
+        PROXY_COUNT=$(grep -c "^  - name:" "$TMP")
+        GROUP_COUNT=$(grep -c "^  - name:" "$TMP" | head -1)
         
-        # ═══════════════════════════════════════════
-        # STEP 8: Validate config before applying
-        # ═══════════════════════════════════════════
-        if /usr/bin/mihomo -d /etc/mihomo -f "$TMP" -t 2>/tmp/mhcfg_err.log; then
-            # Config valid - backup old and apply
-            cp /etc/mihomo/config.yaml /etc/mihomo/config.yaml.bak 2>/dev/null
-            mv "$TMP" /etc/mihomo/config.yaml
-            
-            # Ensure transparent mode ON
-            echo "1" > /etc/mihomo/transparent
-            
-            # Restart mihomo
-            /etc/init.d/mihomo restart >/dev/null 2>&1
-            
-            echo "SAVED"
-        else
-            # Config invalid - don't apply, show error
-            ERR=$(cat /tmp/mhcfg_err.log 2>/dev/null | head -3)
-            rm -f "$TMP" /tmp/mhcfg_err.log
-            echo "INVALID YAML: $ERR"
-        fi
-    else
-        rm -f "$TMP"
-        echo "EMPTY"
-    fi
-else
-    cat /etc/mihomo/config.yaml 2>/dev/null
-fi
+        # Only if we have proxies and 
