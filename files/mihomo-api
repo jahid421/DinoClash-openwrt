@@ -1,6 +1,7 @@
 #!/bin/sh
 echo "Content-Type: application/json"
 echo ""
+
 ACTION=$(echo "$QUERY_STRING" | sed -n 's/.*action=\([a-z_]*\).*/\1/p')
 TRANSPARENT_FILE="/etc/mihomo/transparent"
 
