@@ -1,20 +1,51 @@
 #!/bin/sh
 echo "Content-Type: text/plain"
 echo ""
+
 RAW=$(echo "$QUERY_STRING" | sed -n 's/.*url=\(.*\)$/\1/p')
 URL=$(printf '%b' "$(echo "$RAW" | sed 's/+/ /g; s/%/\\x/g')")
 TMP="/tmp/mhsub_$$.yaml"
+
 if [ -z "$URL" ]; then
     echo "NO_URL"
     exit 0
 fi
+
+# Download subscription
 curl -sL --connect-timeout 20 --max-time 60 -o "$TMP" "$URL" 2>/dev/null
+
 if [ -s "$TMP" ]; then
+    # Auto-inject OpenWrt required settings
     grep -q '^external-controller:' "$TMP" || echo 'external-controller: 0.0.0.0:9595' >> "$TMP"
     grep -q '^external-ui:' "$TMP" || echo 'external-ui: /etc/mihomo/ui' >> "$TMP"
     grep -q '^secret:' "$TMP" || echo 'secret: "flclash123"' >> "$TMP"
+    grep -q '^mixed-port:' "$TMP" || sed -i '1i mixed-port: 7890' "$TMP"
+    grep -q '^redir-port:' "$TMP" || sed -i '1i redir-port: 7892' "$TMP"
+    grep -q '^allow-lan:' "$TMP" || sed -i '1i allow-lan: true' "$TMP"
+    
+    # Auto-optimize speed
+    sed -i 's/strategy: round-robin/strategy: consistent-hashing/g' "$TMP"
+    
+    # Disable TUN (use redirect mode)
+    sed -i '/^tun:/,/^[a-z]/ s/^  enable: true$/  enable: false/' "$TMP"
+    
+    # Detect LAN IP and add safety rule
+    LAN_IP=$(uci -q get network.lan.ipaddr || echo "192.168.1.1")
+    LAN_NET=$(echo "$LAN_IP" | awk -F. '{print $1"."$2"."$3".0/24"}')
+    
+    if ! grep -q "$LAN_NET,DIRECT" "$TMP"; then
+        sed -i "/^rules:/a\\
+  - 'IP-CIDR,$LAN_NET,DIRECT,no-resolve'\\
+  - 'DST-PORT,9595,DIRECT'" "$TMP"
+    fi
+    
+    # Backup and apply
     cp /etc/mihomo/config.yaml /etc/mihomo/config.yaml.bak 2>/dev/null
     mv "$TMP" /etc/mihomo/config.yaml
+    
+    # Ensure transparent mode ON
+    echo "1" > /etc/mihomo/transparent
+    
     /etc/init.d/mihomo restart >/dev/null 2>&1
     echo "OK"
 else
