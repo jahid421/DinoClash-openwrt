@@ -7,156 +7,38 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
     cat > "$TMP"
     
     if [ -s "$TMP" ]; then
-        # ═══════════════════════════════════════════
-        # AUTO-INJECT REQUIRED OPENWRT SETTINGS
-        # ═══════════════════════════════════════════
-        
-        # 1. Required top-level settings
+        # Auto-inject OpenWrt required settings
         grep -q '^external-controller:' "$TMP" || echo 'external-controller: 0.0.0.0:9595' >> "$TMP"
         grep -q '^external-ui:' "$TMP" || echo 'external-ui: /etc/mihomo/ui' >> "$TMP"
         grep -q '^secret:' "$TMP" || echo 'secret: "flclash123"' >> "$TMP"
         grep -q '^mixed-port:' "$TMP" || sed -i '1i mixed-port: 7890' "$TMP"
+        grep -q '^redir-port:' "$TMP" || sed -i '1i redir-port: 7892' "$TMP"
         grep -q '^allow-lan:' "$TMP" || sed -i '1i allow-lan: true' "$TMP"
-        grep -q '^bind-address:' "$TMP" || sed -i "1i bind-address: '*'" "$TMP"
-        grep -q '^log-level:' "$TMP" || sed -i '1i log-level: warning' "$TMP"
-        grep -q '^find-process-mode:' "$TMP" || sed -i '1i find-process-mode: "off"' "$TMP"
-        grep -q '^tcp-concurrent:' "$TMP" || sed -i '1i tcp-concurrent: true' "$TMP"
-        grep -q '^unified-delay:' "$TMP" || sed -i '1i unified-delay: true' "$TMP"
-        grep -q '^geodata-mode:' "$TMP" || sed -i '1i geodata-mode: true' "$TMP"
         
-        # 2. Add profile section if missing
-        if ! grep -q '^profile:' "$TMP"; then
-            cat >> "$TMP" << 'PEOF'
-
-profile:
-  store-selected: true
-  store-fake-ip: true
-PEOF
-        fi
-        
-        # 3. Add sniffer if missing
-        if ! grep -q '^sniffer:' "$TMP"; then
-            cat >> "$TMP" << 'SEOF'
-
-sniffer:
-  enable: true
-  force-dns-mapping: true
-  parse-pure-ip: true
-  override-destination: true
-  sniff:
-    HTTP:
-      ports: [80, 8080-8880]
-      override-destination: true
-    TLS:
-      ports: [443, 8443]
-    QUIC:
-      ports: [443, 8443]
-SEOF
-        fi
-        
-        # 4. Add TUN section if missing (or force enable)
-        if ! grep -q '^tun:' "$TMP"; then
-            cat >> "$TMP" << 'TEOF'
-
-tun:
-  enable: true
-  stack: system
-  device: utun
-  auto-route: true
-  auto-detect-interface: true
-  strict-route: false
-  mtu: 1500
-  dns-hijack:
-    - "any:53"
-  inet4-address:
-    - 172.19.0.1/30
-TEOF
-        else
-            # Force enable TUN
-            sed -i '/^tun:/,/^[a-z]/ s/^  enable: false$/  enable: true/' "$TMP"
-        fi
-        
-        # 5. Add DNS if missing
-        if ! grep -q '^dns:' "$TMP"; then
-            cat >> "$TMP" << 'DEOF'
-
-dns:
-  enable: true
-  listen: 0.0.0.0:1053
-  ipv6: false
-  enhanced-mode: fake-ip
-  fake-ip-range: 198.18.0.1/16
-  fake-ip-filter:
-    - '*.lan'
-    - '*.local'
-    - '*.localhost'
-    - '+.arpa'
-    - 'dns.msftncsi.com'
-    - 'time.*'
-    - 'ntp.*'
-    - '+.pool.ntp.org'
-    - '*.msftconnecttest.com'
-    - '*.msftncsi.com'
-  default-nameserver:
-    - 223.5.5.5
-    - 1.1.1.1
-    - 8.8.8.8
-  nameserver:
-    - https://1.1.1.1/dns-query
-    - https://dns.google/dns-query
-  fallback:
-    - tls://1.1.1.1:853
-    - tls://dns.google:853
-DEOF
-        fi
-        
-        # ═══════════════════════════════════════════
-        # AUTO-OPTIMIZE PROXY GROUPS FOR SPEED
-        # ═══════════════════════════════════════════
-        
-        # Convert slow round-robin to fast consistent-hashing
+        # Auto-optimize speed (round-robin → consistent-hashing)
         sed -i 's/strategy: round-robin/strategy: consistent-hashing/g' "$TMP"
         
-        # Convert load-balance to url-test (auto-fastest)
-        sed -i 's/type: load-balance/type: url-test/g' "$TMP"
+        # Disable TUN if enabled (use redirect mode instead - better for all routers)
+        sed -i '/^tun:/,/^[a-z]/ s/^  enable: true$/  enable: false/' "$TMP"
         
-        # Add tolerance to url-test groups (faster switching)
-        awk '
-        /type: url-test/ {print; found=1; next}
-        found && /^    tolerance:/ {found=0; print; next}
-        found && (/^  - name:/ || /^[a-z]/ || NR==FNR) {
-            if (!/tolerance/) print "    tolerance: 50"
-            found=0
-        }
-        {print}
-        ' "$TMP" > "${TMP}.new" && mv "${TMP}.new" "$TMP"
+        # Detect LAN IP and add safety rule
+        LAN_IP=$(uci -q get network.lan.ipaddr || echo "192.168.1.1")
+        LAN_NET=$(echo "$LAN_IP" | awk -F. '{print $1"."$2"."$3".0/24"}')
         
-        # ═══════════════════════════════════════════
-        # ADD LAN SAFETY RULES (if not exist)
-        # ═══════════════════════════════════════════
-        
-        if grep -q '^rules:' "$TMP"; then
-            # Add safety rules at top of rules section
-            if ! grep -q 'DST-PORT,9595,DIRECT' "$TMP"; then
-                sed -i "/^rules:/a\\
-  - 'IP-CIDR,192.168.0.0/16,DIRECT,no-resolve'\\
-  - 'IP-CIDR,10.0.0.0/8,DIRECT,no-resolve'\\
-  - 'IP-CIDR,172.16.0.0/12,DIRECT,no-resolve'\\
-  - 'IP-CIDR,127.0.0.0/8,DIRECT,no-resolve'\\
+        if ! grep -q "$LAN_NET,DIRECT" "$TMP"; then
+            sed -i "/^rules:/a\\
+  - 'IP-CIDR,$LAN_NET,DIRECT,no-resolve'\\
   - 'DST-PORT,9595,DIRECT'" "$TMP"
-            fi
         fi
         
-        # ═══════════════════════════════════════════
-        # BACKUP & APPLY
-        # ═══════════════════════════════════════════
+        # Backup and apply
         cp /etc/mihomo/config.yaml /etc/mihomo/config.yaml.bak 2>/dev/null
         mv "$TMP" /etc/mihomo/config.yaml
         
         # Ensure transparent mode ON
         echo "1" > /etc/mihomo/transparent
         
-        # Restart mihomo
+        # Restart mihomo (redirect mode auto-applies)
         /etc/init.d/mihomo restart >/dev/null 2>&1
         
         echo "SAVED"
