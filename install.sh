@@ -1,8 +1,8 @@
 #!/bin/sh
 # ═══════════════════════════════════════════════
-# FLClash for OpenWrt - Universal Installer
+# 🦕 DinoClash for OpenWrt - Universal Installer
 # Repo: https://github.com/jahid421/openwrt-flclash
-# Works on: ALL OpenWrt routers with 128MB+ RAM
+# Developer: Jahid Hasan Shuvo
 # ═══════════════════════════════════════════════
 
 set -e
@@ -12,9 +12,10 @@ V="v1.18.10"
 D="/etc/mihomo"
 
 echo "╔══════════════════════════════════════╗"
-echo "║  FLClash for OpenWrt Installer       ║"
+echo "║  🦕 DinoClash for OpenWrt            ║"
 echo "║  Auto-bypass (Redirect Mode)         ║"
 echo "║  Universal - All Architectures       ║"
+echo "║  Developer: Jahid Hasan Shuvo        ║"
 echo "╚══════════════════════════════════════╝"
 echo ""
 
@@ -49,7 +50,7 @@ dl() {
 echo "[✓] Download tool ready"
 
 # ═══════════════════════════════════════════════
-# Architecture detection (OpenWrt DISTRIB_ARCH priority)
+# Architecture detection
 # ═══════════════════════════════════════════════
 OWRT_ARCH=$(. /etc/openwrt_release 2>/dev/null; echo "$DISTRIB_ARCH")
 UNAME_ARCH=$(uname -m)
@@ -80,11 +81,7 @@ detect_arch() {
 
 M=$(detect_arch "$A")
 [ -z "$M" ] && M=$(detect_arch "$UNAME_ARCH")
-
-if [ -z "$M" ]; then
-    echo "ERROR: Cannot detect architecture!"
-    exit 1
-fi
+[ -z "$M" ] && { echo "ERROR: Cannot detect architecture!"; exit 1; }
 
 echo "[✓] Architecture: $M"
 
@@ -102,7 +99,7 @@ if [ "$AVAIL" -lt 30000 ]; then
 fi
 
 # ═══════════════════════════════════════════════
-# Install dependencies (INCLUDING luci-compat!)
+# Install dependencies
 # ═══════════════════════════════════════════════
 echo "[*] Installing dependencies..."
 opkg update >/dev/null 2>&1
@@ -114,7 +111,7 @@ echo "[✓] Dependencies installed"
 # ═══════════════════════════════════════════════
 # Download Mihomo with fallback
 # ═══════════════════════════════════════════════
-echo "[*] Downloading Mihomo core ($M)..."
+echo "[*] Downloading DinoClash core ($M)..."
 cd /tmp && rm -f mihomo.gz mihomo
 
 download_and_verify() {
@@ -163,14 +160,14 @@ else
 fi
 
 mv mihomo /usr/bin/mihomo
-echo "[✓] Mihomo installed: $(/usr/bin/mihomo -v 2>&1 | head -1)"
+echo "[✓] DinoClash core installed"
 
 # ═══════════════════════════════════════════════
-# Setup directories & transparent mode
+# Setup directories & state
 # ═══════════════════════════════════════════════
 mkdir -p $D/profiles $D/providers $D/ruleset $D/ui $D/scripts
 
-# Enable mihomo by default (user can disable via Stop button)
+echo "1" > $D/transparent
 echo "1" > $D/enabled
 
 # ═══════════════════════════════════════════════
@@ -195,9 +192,9 @@ rm -f ui.tgz
 echo "[✓] Dashboard installed"
 
 # ═══════════════════════════════════════════════
-# Download panel files
+# Download DinoClash panel files
 # ═══════════════════════════════════════════════
-echo "[*] Downloading panel files..."
+echo "[*] Downloading DinoClash panel..."
 dl "$REPO/files/mihomo.init" /etc/init.d/mihomo
 chmod +x /etc/init.d/mihomo
 
@@ -216,25 +213,22 @@ dl "$REPO/files/mihomo.lua" /usr/lib/lua/luci/controller/mihomo.lua
 mkdir -p /usr/lib/lua/luci/view/mihomo
 dl "$REPO/files/main.htm" /usr/lib/lua/luci/view/mihomo/main.htm
 
-echo "[✓] Panel installed"
+echo "[✓] DinoClash panel installed"
 
 # ═══════════════════════════════════════════════
 # Auto-detect LAN interface
 # ═══════════════════════════════════════════════
 LAN_IF=$(uci get network.lan.device 2>/dev/null || echo "br-lan")
 LAN_IP=$(uci -q get network.lan.ipaddr || echo "192.168.1.1")
-
-# Update nft.conf with correct LAN interface
 sed -i "s/iifname != \"br-lan\"/iifname != \"$LAN_IF\"/g" $D/nft.conf 2>/dev/null
-
 echo "[✓] LAN: $LAN_IP on $LAN_IF"
 
 # ═══════════════════════════════════════════════
-# Firewall rule for LAN access
+# Firewall rule
 # ═══════════════════════════════════════════════
 uci -q delete firewall.mihomo_proxy 2>/dev/null
 uci set firewall.mihomo_proxy=rule
-uci set firewall.mihomo_proxy.name='Allow-Mihomo-Proxy'
+uci set firewall.mihomo_proxy.name='Allow-DinoClash'
 uci set firewall.mihomo_proxy.src='lan'
 uci set firewall.mihomo_proxy.proto='tcp udp'
 uci set firewall.mihomo_proxy.dest_port='7890 7892 9595 1053'
@@ -256,28 +250,27 @@ sleep 5
 
 echo ""
 echo "╔══════════════════════════════════════╗"
-echo "║       ✅ INSTALL COMPLETE!           ║"
+echo "║    🦕 DinoClash INSTALLED! ✅        ║"
 echo "╠══════════════════════════════════════╣"
 echo "║                                      ║"
 echo "║  🎯 Auto-Bypass: ENABLED             ║"
-echo "║  Mode: Redirect (OpenClash-style)    ║"
 echo "║  All devices auto-use proxy!         ║"
 echo "║                                      ║"
 echo "║  LuCI:      http://$LAN_IP        "
-echo "║  → Services → Mihomo                 ║"
+echo "║  → Services → DinoClash              ║"
 echo "║                                      ║"
 echo "║  Dashboard: http://$LAN_IP:9595/ui"
 echo "║  Secret:    flclash123               ║"
 echo "║                                      ║"
 echo "║  📄 Upload YAML from LuCI panel      ║"
-echo "║  ⚠️  Turn OFF device proxy first!    ║"
 echo "║                                      ║"
+echo "║  Developer: Jahid Hasan Shuvo        ║"
 echo "║  Architecture: $M                    "
 echo "║                                      ║"
 echo "╚══════════════════════════════════════╝"
 
 echo ""
-pgrep -f mihomo && echo "Mihomo: RUNNING ✅" || echo "Mihomo: STOPPED ❌"
+pgrep -f mihomo && echo "DinoClash: RUNNING ✅" || echo "DinoClash: STOPPED ❌"
 
 echo ""
-echo "Support: https://github.com/jahid421/openwrt-flclash"
+echo "🦕 https://github.com/jahid421/openwrt-flclash"
