@@ -1,28 +1,33 @@
 # ═══════════════════════════════════════════
-# Default FLClash Config for OpenWrt
+# 🦕 DinoClash Default Config for OpenWrt
 # Redirect Mode (OpenClash-style)
-# Upload your personal YAML via LuCI panel
+# Upload your YAML via LuCI panel
+# Developer: Jahid Hasan Shuvo
 # ═══════════════════════════════════════════
 mixed-port: 7890
 redir-port: 7892
 allow-lan: true
 bind-address: '*'
 mode: rule
-log-level: warning
+log-level: silent
 ipv6: false
 external-controller: 0.0.0.0:9595
 external-ui: /etc/mihomo/ui
 secret: "flclash123"
 geodata-mode: true
+geodata-loader: standard
 geo-auto-update: true
 find-process-mode: "off"
 global-client-fingerprint: chrome
 tcp-concurrent: true
 unified-delay: true
+keep-alive-interval: 15
+keep-alive-idle: 15
 
 profile:
   store-selected: true
   store-fake-ip: true
+  tracing: false
 
 sniffer:
   enable: true
@@ -38,7 +43,6 @@ sniffer:
     QUIC:
       ports: [443, 8443]
 
-# TUN disabled - Redirect mode used instead (better compatibility)
 tun:
   enable: false
   stack: system
@@ -56,23 +60,12 @@ dns:
   enable: true
   listen: 0.0.0.0:1053
   ipv6: false
-  enhanced-mode: fake-ip
-  fake-ip-range: 198.18.0.1/16
-  fake-ip-filter:
-    - '*.lan'
-    - '*.local'
-    - '*.localhost'
-    - '+.arpa'
-    - 'dns.msftncsi.com'
-    - 'time.*'
-    - 'ntp.*'
-    - '+.pool.ntp.org'
-    - '*.msftconnecttest.com'
-    - '*.msftncsi.com'
+  enhanced-mode: redir-host
   default-nameserver:
     - 223.5.5.5
     - 1.1.1.1
     - 8.8.8.8
+    - 114.114.114.114
   nameserver:
     - https://1.1.1.1/dns-query
     - https://dns.google/dns-query
@@ -88,8 +81,8 @@ proxy-groups:
     proxies:
       - DIRECT
     url: http://www.gstatic.com/generate_204
-    interval: 300
-    tolerance: 50
+    interval: 180
+    tolerance: 30
 
 rules:
   - 'IP-CIDR,192.168.0.0/16,DIRECT,no-resolve'
