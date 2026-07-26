@@ -21,11 +21,11 @@ Lightweight proxy panel for OpenWrt routers with auto-bypass. Custom LuCI panel,
 
 SSH into your router and run:
 
-    opkg update && opkg install curl ca-bundle ca-certificates && curl -sL https://raw.githubusercontent.com/jahid421/openwrt-flclash/main/install.sh | sh
+    opkg update && opkg install curl ca-bundle ca-certificates && curl -sL https://raw.githubusercontent.com/jahid421/DinoClash-openwrt/main/install.sh | sh
 
 Or with wget:
 
-    wget -qO- https://raw.githubusercontent.com/jahid421/openwrt-flclash/main/install.sh | sh
+    wget -qO- https://raw.githubusercontent.com/jahid421/DinoClash-openwrt/main/install.sh | sh
 
 After installation:
 - LuCI: `http://your-router-ip` → Services → DinoClash
