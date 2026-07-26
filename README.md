@@ -1,43 +1,34 @@
-# 🚀 FLClash for OpenWrt
+# 🦕 DinoClash for OpenWrt
 
-Lightweight FLClash-like Mihomo panel for OpenWrt routers with auto-bypass. Custom LuCI panel, YAML upload, and OpenClash-style redirect mode — works on all architectures without any device setup.
+Lightweight proxy panel for OpenWrt routers with auto-bypass. Custom LuCI panel, YAML upload, and OpenClash-style redirect mode — works on all architectures without any device setup.
 
 ## ✨ Features
 
 - Auto-bypass (No device setup needed - Redirect Mode)
 - Universal (x86_64, ARM64, ARMv7, MIPS, MIPSEL)
 - Lightweight (30MB RAM, works on 128MB routers)
-- Custom LuCI Panel (Services → Mihomo)
-- YAML Upload (Auto-optimized)
+- Custom LuCI Panel (Services → DinoClash)
+- YAML Upload (Auto-optimized for speed)
 - Dashboard (MetaCubeXD included)
-- Mihomo Core (FLClash engine)
+- Mihomo Core (Fast engine)
 - Real-time Monitor (Traffic, connections, logs)
 - Mode Switch (Rule/Global/Direct)
 - Auto architecture detection
+- Mobile DNS optimized
+- State persistence (reboot safe)
 
 ## 🚀 Installation
 
-SSH into your router and run this **one-line command**:
+SSH into your router and run:
 
     opkg update && opkg install curl ca-bundle ca-certificates && curl -sL https://raw.githubusercontent.com/jahid421/openwrt-flclash/main/install.sh | sh
 
-**Or step by step:**
-
-    # Step 1: Update package list
-    opkg update
-    
-    # Step 2: Install curl
-    opkg install curl ca-bundle ca-certificates
-    
-    # Step 3: Run installer
-    curl -sL https://raw.githubusercontent.com/jahid421/openwrt-flclash/main/install.sh | sh
-
-**Or with wget (if curl fails):**
+Or with wget:
 
     wget -qO- https://raw.githubusercontent.com/jahid421/openwrt-flclash/main/install.sh | sh
 
 After installation:
-- LuCI: `http://your-router-ip` → Services → Mihomo
+- LuCI: `http://your-router-ip` → Services → DinoClash
 - Dashboard: `http://your-router-ip:9595/ui`
 - Secret: `flclash123`
 
@@ -61,11 +52,17 @@ Upload your YAML config from LuCI panel — done!
 
 ## 🙏 Credits
 
-- [MetaCubeX/mihomo](https://github.com/MetaCubeX/mihomo) - Proxy core (FLClash engine)
+- [MetaCubeX/mihomo](https://github.com/MetaCubeX/mihomo) - Proxy core
 - [MetaCubeX/metacubexd](https://github.com/MetaCubeX/metacubexd) - Dashboard
 - [vernesong/OpenClash](https://github.com/vernesong/OpenClash) - Redirect mode inspiration
 - [chen08209/FlClash](https://github.com/chen08209/FlClash) - UI inspiration
 
+## 👨‍💻 Developer
+
+**Jahid Hasan Shuvo**
+- Instagram: [@crazy_boy_jahid](https://instagram.com/crazy_boy_jahid)
+- GitHub: [@jahid421](https://github.com/jahid421)
+
 ---
 
-**Made with ❤️ for the OpenWrt community**
+**Made with 🦕 for the OpenWrt community**
