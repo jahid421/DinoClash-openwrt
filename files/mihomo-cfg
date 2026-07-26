@@ -1,8 +1,8 @@
 #!/bin/sh
 # ═══════════════════════════════════════════════
 # Ultimate YAML Auto-Optimizer for FLClash
-# High Speed + Low Latency + Load Balancing
-# Works with ANY YAML config
+# High Speed + Low Latency + Load Balance
+# Mobile DNS Fix + Any Config Support
 # ═══════════════════════════════════════════════
 
 echo "Content-Type: text/plain"
@@ -17,16 +17,12 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
         # STEP 1: SPEED + LOAD BALANCE OPTIMIZATION
         # ═══════════════════════════════════════════
         
-        # Convert to url-test with fallback (best speed + reliability)
-        # Keep load-balance as is (but with consistent-hashing)
+        # Fix strategy for load-balance (round-robin → consistent-hashing)
         awk '
         BEGIN { in_group=0 }
         /^  - name:/ { in_group=1 }
         /^[a-z]/ && !/^  / { in_group=0 }
         {
-            # url-test → keep (already optimized)
-            # load-balance → keep with consistent-hashing
-            # Just fix strategy for load-balance
             if (in_group && /^    strategy: round-robin$/) {
                 print "    strategy: consistent-hashing"
                 next
@@ -35,40 +31,31 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
         }
         ' "$TMP" > "${TMP}.opt" && mv "${TMP}.opt" "$TMP"
         
-        # Speed optimizations
+        # Speed up intervals
         sed -i 's/interval: 300/interval: 180/g' "$TMP"
         sed -i 's/interval: 600/interval: 180/g' "$TMP"
         sed -i 's/interval: 900/interval: 180/g' "$TMP"
+        
+        # Faster tolerance
         sed -i 's/tolerance: 50/tolerance: 30/g' "$TMP"
         sed -i 's/tolerance: 100/tolerance: 30/g' "$TMP"
         sed -i 's/tolerance: 150/tolerance: 30/g' "$TMP"
         
         # Add lazy: true to url-test groups
         awk '
-        BEGIN { in_urltest=0; has_lazy=0; group_name="" }
+        BEGIN { in_urltest=0; has_lazy=0 }
         /^  - name:/ {
-            if (in_urltest && !has_lazy) {
-                print "    lazy: true"
-            }
-            in_urltest=0
-            has_lazy=0
-            group_name=$0
+            if (in_urltest && !has_lazy) print "    lazy: true"
+            in_urltest=0; has_lazy=0
         }
         /^    type: url-test/ { in_urltest=1 }
         /^    lazy:/ { has_lazy=1 }
         /^[a-z]/ && !/^  / {
-            if (in_urltest && !has_lazy) {
-                print "    lazy: true"
-            }
-            in_urltest=0
-            has_lazy=0
+            if (in_urltest && !has_lazy) print "    lazy: true"
+            in_urltest=0; has_lazy=0
         }
         { print }
-        END {
-            if (in_urltest && !has_lazy) {
-                print "    lazy: true"
-            }
-        }
+        END { if (in_urltest && !has_lazy) print "    lazy: true" }
         ' "$TMP" > "${TMP}.lazy" && mv "${TMP}.lazy" "$TMP"
         
         # ═══════════════════════════════════════════
@@ -79,19 +66,19 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
         grep -q '^allow-lan:' "$TMP" || sed -i '1i allow-lan: true' "$TMP"
         grep -q "^bind-address:" "$TMP" || sed -i "1i bind-address: '*'" "$TMP"
         grep -q '^mode:' "$TMP" || sed -i '1i mode: rule' "$TMP"
-        grep -q '^log-level:' "$TMP" || sed -i '1i log-level: warning' "$TMP"
+        grep -q '^log-level:' "$TMP" || sed -i '1i log-level: silent' "$TMP"
         grep -q '^ipv6:' "$TMP" || sed -i '1i ipv6: false' "$TMP"
         grep -q '^external-controller:' "$TMP" || echo 'external-controller: 0.0.0.0:9595' >> "$TMP"
         grep -q '^external-ui:' "$TMP" || echo 'external-ui: /etc/mihomo/ui' >> "$TMP"
         grep -q '^secret:' "$TMP" || echo 'secret: "flclash123"' >> "$TMP"
         grep -q '^geodata-mode:' "$TMP" || echo 'geodata-mode: true' >> "$TMP"
+        grep -q '^geodata-loader:' "$TMP" || echo 'geodata-loader: standard' >> "$TMP"
         grep -q '^find-process-mode:' "$TMP" || echo 'find-process-mode: "off"' >> "$TMP"
         grep -q '^global-client-fingerprint:' "$TMP" || echo 'global-client-fingerprint: chrome' >> "$TMP"
-        
-        # Speed boost settings
         grep -q '^tcp-concurrent:' "$TMP" || echo 'tcp-concurrent: true' >> "$TMP"
         grep -q '^unified-delay:' "$TMP" || echo 'unified-delay: true' >> "$TMP"
-        grep -q '^keep-alive-interval:' "$TMP" || echo 'keep-alive-interval: 30' >> "$TMP"
+        grep -q '^keep-alive-interval:' "$TMP" || echo 'keep-alive-interval: 15' >> "$TMP"
+        grep -q '^keep-alive-idle:' "$TMP" || echo 'keep-alive-idle: 15' >> "$TMP"
         
         # ═══════════════════════════════════════════
         # STEP 3: Profile
@@ -102,6 +89,7 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
 profile:
   store-selected: true
   store-fake-ip: true
+  tracing: false
 PEOF
         fi
         
@@ -151,7 +139,7 @@ TEOF
         fi
         
         # ═══════════════════════════════════════════
-        # STEP 6: Fast DNS (Fake-IP)
+        # STEP 6: Fast DNS (redir-host for mobile fix)
         # ═══════════════════════════════════════════
         if ! grep -q '^dns:' "$TMP"; then
             cat >> "$TMP" << 'DEOF'
@@ -160,64 +148,35 @@ dns:
   enable: true
   listen: 0.0.0.0:1053
   ipv6: false
-  enhanced-mode: fake-ip
-  fake-ip-range: 198.18.0.1/16
-  fake-ip-filter:
-    - '*.lan'
-    - '*.local'
-    - '*.localhost'
-    - '+.arpa'
-    - 'dns.msftncsi.com'
-    - 'time.*'
-    - 'ntp.*'
-    - '+.pool.ntp.org'
-    - '*.msftconnecttest.com'
-    - '*.msftncsi.com'
+  enhanced-mode: redir-host
   default-nameserver:
     - 223.5.5.5
     - 1.1.1.1
     - 8.8.8.8
+    - 114.114.114.114
   nameserver:
     - https://1.1.1.1/dns-query
     - https://dns.google/dns-query
   fallback:
     - tls://1.1.1.1:853
     - tls://dns.google:853
+  nameserver-policy:
+    '+.google.com': 'https://dns.google/dns-query'
+    '+.facebook.com': 'https://1.1.1.1/dns-query'
+    '+.youtube.com': 'https://dns.google/dns-query'
 DEOF
-        fi
-        
-        # ═══════════════════════════════════════════
-        # STEP 7: AUTO-ADD LOAD BALANCE GROUP
-        # If user has proxies but only 1 group, add LB group
-        # ═══════════════════════════════════════════
-        
-        PROXY_COUNT=$(grep -c "^  - name:" "$TMP")
-        GROUP_COUNT=$(grep -c "^  - name:" "$TMP" | head -1)
-        
-        # Only if we have proxies and no ⚡ Load-Balance group exists
-        if [ "$PROXY_COUNT" -gt 5 ] && ! grep -q "⚡ Load-Balance" "$TMP"; then
-            # Extract all proxy names
-            PROXIES=$(awk '/^proxies:/,/^proxy-groups:/' "$TMP" | grep "^  - name:" | sed 's/  - name: //' | head -50)
-            
-            # Find where proxy-groups starts
-            if grep -q "^proxy-groups:" "$TMP"; then
-                # Insert Load-Balance group after "proxy-groups:"
-                LB_GROUP='  - name: "⚡ Load-Balance"\
-    type: load-balance\
-    strategy: consistent-hashing\
-    url: https://www.gstatic.com/generate_204\
-    interval: 180\
-    lazy: true\
-    proxies:'
-                
-                # This is complex - user can manually add if needed
-                # For now, just optimize existing groups
-                :
+        else
+            # Fix existing DNS for mobile
+            sed -i 's/enhanced-mode: fake-ip/enhanced-mode: redir-host/g' "$TMP"
+            sed -i 's/prefer-h3: true/prefer-h3: false/g' "$TMP"
+            # Add BD DNS if missing
+            if ! grep -q "114.114.114.114" "$TMP"; then
+                sed -i '/default-nameserver:/a\    - 114.114.114.114' "$TMP"
             fi
         fi
         
         # ═══════════════════════════════════════════
-        # STEP 8: LAN safety rules
+        # STEP 7: LAN safety rules
         # ═══════════════════════════════════════════
         LAN_IP=$(uci -q get network.lan.ipaddr || echo "192.168.1.1")
         LAN_NET=$(echo "$LAN_IP" | awk -F. '{print $1"."$2"."$3".0/24"}')
@@ -229,18 +188,21 @@ DEOF
             if ! grep -q "$LAN_NET,DIRECT" "$TMP"; then
                 sed -i "/^rules:/a\\
   - 'IP-CIDR,$LAN_NET,DIRECT,no-resolve'\\
+  - 'IP-CIDR,192.168.0.0/16,DIRECT,no-resolve'\\
+  - 'IP-CIDR,10.0.0.0/8,DIRECT,no-resolve'\\
+  - 'IP-CIDR,172.16.0.0/12,DIRECT,no-resolve'\\
+  - 'IP-CIDR,127.0.0.0/8,DIRECT,no-resolve'\\
   - 'DST-PORT,9595,DIRECT'" "$TMP"
             fi
         fi
         
         # ═══════════════════════════════════════════
-        # STEP 9: Validate & Apply
+        # STEP 8: Validate & Apply
         # ═══════════════════════════════════════════
         if /usr/bin/mihomo -d /etc/mihomo -f "$TMP" -t 2>/tmp/mhcfg_err.log; then
             cp /etc/mihomo/config.yaml /etc/mihomo/config.yaml.bak 2>/dev/null
             mv "$TMP" /etc/mihomo/config.yaml
             
-            # Save user preferences
             echo "1" > /etc/mihomo/transparent
             echo "1" > /etc/mihomo/enabled
             
