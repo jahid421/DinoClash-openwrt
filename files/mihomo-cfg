@@ -1,8 +1,6 @@
 #!/bin/sh
 # ═══════════════════════════════════════════════
-# 🦕 DinoClash - Smart YAML Auto-Optimizer
-# High Speed + Low Latency + Load Balance
-# Mobile DNS Fix + Any Config Support
+# 🦕 DinoClash - Ultra Speed YAML Auto-Optimizer
 # Developer: Jahid Hasan Shuvo
 # ═══════════════════════════════════════════════
 
@@ -14,9 +12,7 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
     cat > "$TMP"
     
     if [ -s "$TMP" ]; then
-        # ═══════════════════════════════════════════
-        # STEP 1: SPEED + LOAD BALANCE OPTIMIZATION
-        # ═══════════════════════════════════════════
+        # STEP 1: SPEED OPTIMIZATION
         awk '
         BEGIN { in_group=0 }
         /^  - name:/ { in_group=1 }
@@ -30,12 +26,14 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
         }
         ' "$TMP" > "${TMP}.opt" && mv "${TMP}.opt" "$TMP"
         
-        sed -i 's/interval: 300/interval: 180/g' "$TMP"
-        sed -i 's/interval: 600/interval: 180/g' "$TMP"
-        sed -i 's/interval: 900/interval: 180/g' "$TMP"
-        sed -i 's/tolerance: 50/tolerance: 30/g' "$TMP"
-        sed -i 's/tolerance: 100/tolerance: 30/g' "$TMP"
-        sed -i 's/tolerance: 150/tolerance: 30/g' "$TMP"
+        sed -i 's/interval: 300/interval: 120/g' "$TMP"
+        sed -i 's/interval: 600/interval: 120/g' "$TMP"
+        sed -i 's/interval: 900/interval: 120/g' "$TMP"
+        sed -i 's/interval: 180/interval: 120/g' "$TMP"
+        sed -i 's/tolerance: 50/tolerance: 20/g' "$TMP"
+        sed -i 's/tolerance: 100/tolerance: 20/g' "$TMP"
+        sed -i 's/tolerance: 150/tolerance: 20/g' "$TMP"
+        sed -i 's/tolerance: 30/tolerance: 20/g' "$TMP"
         
         awk '
         BEGIN { in_urltest=0; has_lazy=0 }
@@ -53,9 +51,7 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
         END { if (in_urltest && !has_lazy) print "    lazy: true" }
         ' "$TMP" > "${TMP}.lazy" && mv "${TMP}.lazy" "$TMP"
         
-        # ═══════════════════════════════════════════
-        # STEP 2: HIGH SPEED SETTINGS
-        # ═══════════════════════════════════════════
+        # STEP 2: REQUIRED SETTINGS
         grep -q '^mixed-port:' "$TMP" || sed -i '1i mixed-port: 7890' "$TMP"
         grep -q '^redir-port:' "$TMP" || sed -i '1i redir-port: 7892' "$TMP"
         grep -q '^allow-lan:' "$TMP" || sed -i '1i allow-lan: true' "$TMP"
@@ -72,12 +68,10 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
         grep -q '^global-client-fingerprint:' "$TMP" || echo 'global-client-fingerprint: chrome' >> "$TMP"
         grep -q '^tcp-concurrent:' "$TMP" || echo 'tcp-concurrent: true' >> "$TMP"
         grep -q '^unified-delay:' "$TMP" || echo 'unified-delay: true' >> "$TMP"
-        grep -q '^keep-alive-interval:' "$TMP" || echo 'keep-alive-interval: 15' >> "$TMP"
-        grep -q '^keep-alive-idle:' "$TMP" || echo 'keep-alive-idle: 15' >> "$TMP"
+        grep -q '^keep-alive-interval:' "$TMP" || echo 'keep-alive-interval: 10' >> "$TMP"
+        grep -q '^keep-alive-idle:' "$TMP" || echo 'keep-alive-idle: 10' >> "$TMP"
         
-        # ═══════════════════════════════════════════
-        # STEP 3: Profile
-        # ═══════════════════════════════════════════
+        # STEP 3: PROFILE
         if ! grep -q '^profile:' "$TMP"; then
             cat >> "$TMP" << 'PEOF'
 
@@ -88,9 +82,7 @@ profile:
 PEOF
         fi
         
-        # ═══════════════════════════════════════════
-        # STEP 4: Sniffer
-        # ═══════════════════════════════════════════
+        # STEP 4: SNIFFER
         if ! grep -q '^sniffer:' "$TMP"; then
             cat >> "$TMP" << 'SEOF'
 
@@ -110,9 +102,7 @@ sniffer:
 SEOF
         fi
         
-        # ═══════════════════════════════════════════
         # STEP 5: TUN (disabled)
-        # ═══════════════════════════════════════════
         if ! grep -q '^tun:' "$TMP"; then
             cat >> "$TMP" << 'TEOF'
 
@@ -133,9 +123,7 @@ TEOF
             sed -i '/^tun:/,/^[a-z]/ s/^  enable: true$/  enable: false/' "$TMP"
         fi
         
-        # ═══════════════════════════════════════════
-        # STEP 6: Fast DNS (redir-host + mobile fix)
-        # ═══════════════════════════════════════════
+        # STEP 6: DNS (redir-host + mobile fix)
         if ! grep -q '^dns:' "$TMP"; then
             cat >> "$TMP" << 'DEOF'
 
@@ -168,16 +156,13 @@ DEOF
             fi
         fi
         
-        # ═══════════════════════════════════════════
-        # STEP 7: LAN safety rules
-        # ═══════════════════════════════════════════
+        # STEP 7: LAN SAFETY
         LAN_IP=$(uci -q get network.lan.ipaddr || echo "192.168.1.1")
         LAN_NET=$(echo "$LAN_IP" | awk -F. '{print $1"."$2"."$3".0/24"}')
         
         if grep -q '^rules:' "$TMP"; then
             sed -i '/192.168.87.0\/24,DIRECT/d' "$TMP"
             sed -i '/192.168.64.0\/24,DIRECT/d' "$TMP"
-            
             if ! grep -q "$LAN_NET,DIRECT" "$TMP"; then
                 sed -i "/^rules:/a\\
   - 'IP-CIDR,$LAN_NET,DIRECT,no-resolve'\\
@@ -189,9 +174,7 @@ DEOF
             fi
         fi
         
-        # ═══════════════════════════════════════════
-        # STEP 8: Validate & Apply
-        # ═══════════════════════════════════════════
+        # STEP 8: VALIDATE & APPLY
         if /usr/bin/mihomo -d /etc/mihomo -f "$TMP" -t 2>/tmp/mhcfg_err.log; then
             cp /etc/mihomo/config.yaml /etc/mihomo/config.yaml.bak 2>/dev/null
             mv "$TMP" /etc/mihomo/config.yaml
