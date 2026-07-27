@@ -1,7 +1,6 @@
 # ═══════════════════════════════════════════
 # 🦕 DinoClash Default Config for OpenWrt
-# Redirect Mode (OpenClash-style)
-# Upload your YAML via LuCI panel
+# Ultra Speed + Low Latency
 # Developer: Jahid Hasan Shuvo
 # ═══════════════════════════════════════════
 mixed-port: 7890
@@ -21,8 +20,8 @@ find-process-mode: "off"
 global-client-fingerprint: chrome
 tcp-concurrent: true
 unified-delay: true
-keep-alive-interval: 15
-keep-alive-idle: 15
+keep-alive-interval: 10
+keep-alive-idle: 10
 
 profile:
   store-selected: true
@@ -81,8 +80,8 @@ proxy-groups:
     proxies:
       - DIRECT
     url: http://www.gstatic.com/generate_204
-    interval: 180
-    tolerance: 30
+    interval: 120
+    tolerance: 20
 
 rules:
   - 'IP-CIDR,192.168.0.0/16,DIRECT,no-resolve'
