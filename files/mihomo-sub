@@ -1,6 +1,8 @@
 #!/bin/sh
-# Ultimate Subscription Auto-Optimizer
-# High Speed + Low Latency + Load Balance
+# ═══════════════════════════════════════════════
+# 🦕 DinoClash - Ultra Speed Subscription Optimizer
+# Developer: Jahid Hasan Shuvo
+# ═══════════════════════════════════════════════
 
 echo "Content-Type: text/plain"
 echo ""
@@ -14,26 +16,16 @@ if [ -z "$URL" ]; then
     exit 0
 fi
 
-# Download with browser headers
-curl -sL \
-    --connect-timeout 20 \
-    --max-time 60 \
-    -H "User-Agent: Mihomo/1.18.10 (linux; amd64)" \
-    -H "Accept: */*" \
-    -o "$TMP" "$URL" 2>/dev/null
+curl -sL --connect-timeout 20 --max-time 60 -H "User-Agent: DinoClash/1.0" -o "$TMP" "$URL" 2>/dev/null
 
 if [ -s "$TMP" ]; then
-    # Validate
     if ! grep -q "^proxies:\|^proxy-providers:" "$TMP"; then
         rm -f "$TMP"
-        echo "INVALID_SUBSCRIPTION_FORMAT"
+        echo "INVALID_FORMAT"
         exit 0
     fi
     
-    # Apply same optimizations as mihomo-cfg
-    # (Speed boost, low latency, load balance)
-    
-    # Convert strategy
+    # SPEED OPTIMIZATION
     awk '
     BEGIN { in_group=0 }
     /^  - name:/ { in_group=1 }
@@ -47,13 +39,13 @@ if [ -s "$TMP" ]; then
     }
     ' "$TMP" > "${TMP}.opt" && mv "${TMP}.opt" "$TMP"
     
-    # Speed intervals
-    sed -i 's/interval: 300/interval: 180/g' "$TMP"
-    sed -i 's/interval: 600/interval: 180/g' "$TMP"
-    sed -i 's/tolerance: 50/tolerance: 30/g' "$TMP"
-    sed -i 's/tolerance: 100/tolerance: 30/g' "$TMP"
+    sed -i 's/interval: 300/interval: 120/g' "$TMP"
+    sed -i 's/interval: 600/interval: 120/g' "$TMP"
+    sed -i 's/interval: 180/interval: 120/g' "$TMP"
+    sed -i 's/tolerance: 50/tolerance: 20/g' "$TMP"
+    sed -i 's/tolerance: 100/tolerance: 20/g' "$TMP"
+    sed -i 's/tolerance: 30/tolerance: 20/g' "$TMP"
     
-    # Add lazy
     awk '
     BEGIN { in_urltest=0; has_lazy=0 }
     /^  - name:/ {
@@ -70,23 +62,24 @@ if [ -s "$TMP" ]; then
     END { if (in_urltest && !has_lazy) print "    lazy: true" }
     ' "$TMP" > "${TMP}.lazy" && mv "${TMP}.lazy" "$TMP"
     
-    # Required settings
+    # REQUIRED SETTINGS
     grep -q '^mixed-port:' "$TMP" || sed -i '1i mixed-port: 7890' "$TMP"
     grep -q '^redir-port:' "$TMP" || sed -i '1i redir-port: 7892' "$TMP"
     grep -q '^allow-lan:' "$TMP" || sed -i '1i allow-lan: true' "$TMP"
     grep -q "^bind-address:" "$TMP" || sed -i "1i bind-address: '*'" "$TMP"
     grep -q '^mode:' "$TMP" || sed -i '1i mode: rule' "$TMP"
-    grep -q '^log-level:' "$TMP" || sed -i '1i log-level: warning' "$TMP"
+    grep -q '^log-level:' "$TMP" || sed -i '1i log-level: silent' "$TMP"
     grep -q '^external-controller:' "$TMP" || echo 'external-controller: 0.0.0.0:9595' >> "$TMP"
     grep -q '^external-ui:' "$TMP" || echo 'external-ui: /etc/mihomo/ui' >> "$TMP"
     grep -q '^secret:' "$TMP" || echo 'secret: "flclash123"' >> "$TMP"
     grep -q '^tcp-concurrent:' "$TMP" || echo 'tcp-concurrent: true' >> "$TMP"
     grep -q '^unified-delay:' "$TMP" || echo 'unified-delay: true' >> "$TMP"
-    grep -q '^keep-alive-interval:' "$TMP" || echo 'keep-alive-interval: 30' >> "$TMP"
+    grep -q '^keep-alive-interval:' "$TMP" || echo 'keep-alive-interval: 10' >> "$TMP"
+    grep -q '^keep-alive-idle:' "$TMP" || echo 'keep-alive-idle: 10' >> "$TMP"
     
-    # Sections
+    # SECTIONS
     if ! grep -q '^profile:' "$TMP"; then
-        printf '\nprofile:\n  store-selected: true\n  store-fake-ip: true\n' >> "$TMP"
+        printf '\nprofile:\n  store-selected: true\n  store-fake-ip: true\n  tracing: false\n' >> "$TMP"
     fi
     
     if ! grep -q '^sniffer:' "$TMP"; then
@@ -135,20 +128,12 @@ dns:
   enable: true
   listen: 0.0.0.0:1053
   ipv6: false
-  enhanced-mode: fake-ip
-  fake-ip-range: 198.18.0.1/16
-  fake-ip-filter:
-    - '*.lan'
-    - '*.local'
-    - '*.localhost'
-    - '+.arpa'
-    - 'dns.msftncsi.com'
-    - 'time.*'
-    - 'ntp.*'
-    - '+.pool.ntp.org'
+  enhanced-mode: redir-host
   default-nameserver:
     - 223.5.5.5
     - 1.1.1.1
+    - 8.8.8.8
+    - 114.114.114.114
   nameserver:
     - https://1.1.1.1/dns-query
     - https://dns.google/dns-query
@@ -156,16 +141,21 @@ dns:
     - tls://1.1.1.1:853
     - tls://dns.google:853
 DEOF
+    else
+        sed -i 's/enhanced-mode: fake-ip/enhanced-mode: redir-host/g' "$TMP"
+        sed -i 's/prefer-h3: true/prefer-h3: false/g' "$TMP"
+        if ! grep -q "114.114.114.114" "$TMP"; then
+            sed -i '/default-nameserver:/a\    - 114.114.114.114' "$TMP"
+        fi
     fi
     
-    # LAN safety
+    # LAN SAFETY
     LAN_IP=$(uci -q get network.lan.ipaddr || echo "192.168.1.1")
     LAN_NET=$(echo "$LAN_IP" | awk -F. '{print $1"."$2"."$3".0/24"}')
     
     if grep -q '^rules:' "$TMP"; then
         sed -i '/192.168.87.0\/24,DIRECT/d' "$TMP"
         sed -i '/192.168.64.0\/24,DIRECT/d' "$TMP"
-        
         if ! grep -q "$LAN_NET,DIRECT" "$TMP"; then
             sed -i "/^rules:/a\\
   - 'IP-CIDR,$LAN_NET,DIRECT,no-resolve'\\
@@ -173,7 +163,7 @@ DEOF
         fi
     fi
     
-    # Validate
+    # VALIDATE
     if /usr/bin/mihomo -d /etc/mihomo -f "$TMP" -t 2>/tmp/mhsub_err.log; then
         cp /etc/mihomo/config.yaml /etc/mihomo/config.yaml.bak 2>/dev/null
         mv "$TMP" /etc/mihomo/config.yaml
