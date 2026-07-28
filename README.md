@@ -7,7 +7,7 @@
 
 **Lightweight, fast, and universal proxy panel for OpenWrt routers.**
 
-A complete OpenClash alternative with auto-bypass, custom LuCI panel, YAML upload with auto-optimization, and video streaming support — works on ALL architectures without any device setup.
+A proxy panel with auto-bypass, custom LuCI interface, YAML upload with auto-optimization, video streaming support, and mobile DNS fix — works on ALL architectures and OpenWrt versions (v21 to v25+) without any device setup.
 
 ---
 
@@ -15,9 +15,9 @@ A complete OpenClash alternative with auto-bypass, custom LuCI panel, YAML uploa
 
 ### 🚀 Core
 - **Auto-bypass** — No device setup needed (Redirect Mode)
-- **Universal** — Works on x86_64, ARM64, ARMv7, MIPS, MIPSEL, RISC-V
-- **Lightweight** — 25MB RAM (vs OpenClash 80MB+)
-- **Ultra Fast** — 3x faster than OpenClash
+- **Universal** — x86_64, ARM64, ARMv7, MIPS, MIPSEL, RISC-V
+- **Lightweight** — 25MB RAM, works on 128MB routers
+- **Ultra Fast** — interval:120s, tolerance:20ms, lazy mode
 - **Mihomo Core** — Same engine as FLClash
 
 ### 🎨 Panel
@@ -30,20 +30,21 @@ A complete OpenClash alternative with auto-bypass, custom LuCI panel, YAML uploa
 - **Mode Switch** — Rule / Global / Direct
 
 ### ⚡ Speed
-- **Ultra Low Latency** — interval:120s, tolerance:20ms
 - **Load Balancing** — consistent-hashing strategy
 - **Lazy Mode** — Skip dead proxies automatically
-- **Keep-alive** — 10s reconnect
+- **Keep-alive** — 10s fast reconnect
 - **Video Streaming** — QUIC redirect support
 - **Mobile DNS Fix** — redir-host mode
+- **Silent Logging** — Zero CPU overhead
 
 ### 🔧 Smart
 - **Config Validation** — Test before apply
-- **State Persistence** — Survives reboot
+- **State Persistence** — Survives reboot (Start/Stop remembered)
 - **Auto Architecture Detection** — No manual selection
 - **Auto LAN Detection** — Works on any network
 - **v21 to v25+ Support** — opkg and apk compatible
 - **iptables + nftables** — Auto-detect firewall
+- **Dual LuCI Support** — Lua (v21-v24) + ucode (v25+)
 
 ---
 
@@ -58,11 +59,11 @@ DinoClash is designed for routers with limited resources. It focuses on simplici
 | **Install** | One command |
 | **YAML** | Auto-optimized on upload |
 | **Video** | QUIC redirect support |
-| **Mobile** | DNS optimized |
+| **Mobile** | DNS optimized (redir-host) |
 | **Validation** | Config tested before apply |
 | **Versions** | OpenWrt v21 to v25+ |
 | **Architectures** | All (x86, ARM, MIPS, RISC-V) |
-
+| **Package Managers** | opkg (v21-v24) + apk (v25+) |
 
 ---
 
@@ -100,16 +101,17 @@ DinoClash is designed for routers with limited resources. It focuses on simplici
 
     apk update && apk add curl ca-bundle ca-certificates && curl -sL https://raw.githubusercontent.com/jahid421/DinoClash-openwrt/main/install.sh | sh
 
-### Universal (wget):
+### Universal (wget — works on all versions):
 
     wget -qO- https://raw.githubusercontent.com/jahid421/DinoClash-openwrt/main/install.sh | sh
 
 ### After Installation:
 
-- **LuCI Panel:** `http://your-router-ip` → Services → DinoClash 🦕
-- **Dashboard:** `http://your-router-ip:9595/ui`
-- **Secret:** `flclash123`
-- **Upload your YAML config from LuCI panel — done!**
+1. **LuCI Panel:** `http://your-router-ip` → Services → DinoClash 🦕
+2. **Dashboard:** `http://your-router-ip:9595/ui`
+3. **Secret:** `flclash123`
+4. **Upload your YAML config from LuCI panel — done!**
+5. **Turn OFF manual proxy on all devices!**
 
 ---
 
@@ -122,59 +124,60 @@ DinoClash is designed for routers with limited resources. It focuses on simplici
 ### Step 2: Upload YAML Config
 
 - Click **"Upload YAML Config"**
-- Select your config file
+- Select your config file (.yaml / .yml)
 - Click **"Upload & Apply"**
-- Config auto-optimized and applied
+- Config auto-optimized and applied!
 
 ### Step 3: Done!
 
 - All devices on your network auto-use proxy
 - No manual setup on any device
-- Turn OFF any manual proxy settings on devices
+- Proxy sorted by latency (fastest first)
 
 ---
 
-## 🎨 Panel Tabs
+## 🎨 Panel Features
 
-### Overview
+### Overview Tab
 - Start / Stop / Restart service
 - Auto-Bypass toggle (ON/OFF)
 - Upload YAML config
-- Subscription URL
+- Subscription URL support
 - Mode switch (Rule/Global/Direct)
 - Real-time traffic graph
-- Memory usage
-- Quick actions (Update GeoIP, Flush DNS)
+- Memory usage display
+- Quick actions (Update GeoIP, Flush DNS, Open Dashboard)
 
-### Proxy
-- All proxy groups
-- Nodes sorted by latency (fastest first)
-- Test all delays
-- Search proxies
-- Click to select node
+### Proxy Tab
+- All proxy groups displayed
+- Nodes sorted by latency (fastest first ⚡)
+- Test all delays with one click
+- Search proxies by name
+- Click to select active node
 
-### Config
-- YAML editor
+### Config Tab
+- Full YAML editor
 - Save & auto-restart
 
-### Connections
+### Connections Tab
 - Live active connections
-- Filter by host
-- Close individual/all connections
+- Filter by host name
+- Close individual or all connections
 
-### Log
-- Real-time logs
-- Filter by level (Info/Warning/Error)
+### Log Tab
+- Real-time log streaming
+- Filter by level (Info / Warning / Error)
+- Clear logs
 
 ---
 
-## 🔧 Commands
+## 🔧 Useful Commands
 
 ### Check Status
 
     pgrep -f mihomo && echo "Running" || echo "Stopped"
 
-### Restart
+### Restart Service
 
     /etc/init.d/mihomo restart
 
@@ -190,11 +193,7 @@ DinoClash is designed for routers with limited resources. It focuses on simplici
 
     echo "0" > /etc/mihomo/transparent && /etc/init.d/mihomo restart
 
-### Update from GitHub
-
-    curl -sL https://raw.githubusercontent.com/jahid421/DinoClash-openwrt/main/files/mihomo-cfg -o /www/cgi-bin/mihomo-cfg && chmod +x /www/cgi-bin/mihomo-cfg
-
-### Full Update (all files)
+### Full Update (all files from GitHub)
 
     curl -sL https://raw.githubusercontent.com/jahid421/DinoClash-openwrt/main/files/mihomo.lua -o /usr/lib/lua/luci/controller/mihomo.lua
     curl -sL https://raw.githubusercontent.com/jahid421/DinoClash-openwrt/main/files/main.htm -o /usr/lib/lua/luci/view/mihomo/main.htm
@@ -205,9 +204,7 @@ DinoClash is designed for routers with limited resources. It focuses on simplici
     curl -sL https://raw.githubusercontent.com/jahid421/DinoClash-openwrt/main/files/nft.conf -o /etc/mihomo/nft.conf
     chmod +x /etc/init.d/mihomo /www/cgi-bin/mihomo-*
     rm -rf /tmp/luci-*
-    /etc/init.d/rpcd restart
-    /etc/init.d/uhttpd restart
-    /etc/init.d/mihomo restart
+    /etc/init.d/rpcd restart && /etc/init.d/uhttpd restart && /etc/init.d/mihomo restart
 
 ---
 
@@ -218,6 +215,7 @@ DinoClash is designed for routers with limited resources. It focuses on simplici
     rm -f /usr/bin/mihomo /etc/init.d/mihomo
     rm -rf /etc/mihomo /usr/lib/lua/luci/view/mihomo
     rm -f /usr/lib/lua/luci/controller/mihomo.lua
+    rm -f /usr/share/luci/menu.d/luci-app-dinoclash.json
     rm -f /www/cgi-bin/mihomo-*
     nft delete table inet mihomo 2>/dev/null
     uci -q delete firewall.mihomo_proxy
@@ -227,16 +225,15 @@ DinoClash is designed for routers with limited resources. It focuses on simplici
     /etc/init.d/dnsmasq restart
     /etc/init.d/firewall restart
     rm -rf /tmp/luci-*
-    /etc/init.d/rpcd restart
-    /etc/init.d/uhttpd restart
+    /etc/init.d/rpcd restart && /etc/init.d/uhttpd restart
 
 ---
 
-## ⚠️ OpenClash Conflict
+## ⚠️ OpenClash Users
 
-Cannot run both DinoClash and OpenClash simultaneously.
+Cannot run both DinoClash and OpenClash simultaneously due to port conflicts.
 
-Disable OpenClash before installing:
+Before installing DinoClash:
 
     /etc/init.d/openclash stop
     /etc/init.d/openclash disable
@@ -247,34 +244,36 @@ Disable OpenClash before installing:
 
 ### LuCI menu not showing?
 
-    opkg install luci-compat luci-lib-ipkg   # v21-v24
-    apk add luci-compat                       # v25+
+    # v21-v24
+    opkg install luci-compat luci-lib-ipkg
+    
+    # v25+
+    apk add luci-compat
+    
+    # Then
     rm -rf /tmp/luci-*
-    /etc/init.d/uhttpd restart
-    /etc/init.d/rpcd restart
+    /etc/init.d/uhttpd restart && /etc/init.d/rpcd restart
 
 ### DinoClash won't start?
 
-    /usr/bin/mihomo -v                        # Check binary
-    /usr/bin/mihomo -d /etc/mihomo -t         # Test config
-    logread | grep mihomo | tail -20          # Check logs
+    /usr/bin/mihomo -v
+    /usr/bin/mihomo -d /etc/mihomo -t
+    logread | grep mihomo | tail -20
 
-### Internet breaks after enabling?
+### Internet breaks after enabling auto-bypass?
 
     echo "0" > /etc/mihomo/transparent
     /etc/init.d/mihomo restart
     nft delete table inet mihomo 2>/dev/null
 
-### Wrong architecture?
+### Wrong architecture detected?
 
-    # Check your arch
     uname -m
     cat /etc/openwrt_release | grep ARCH
-    
-    # Manual binary install
-    # Visit: https://github.com/MetaCubeX/mihomo/releases
 
 ---
+
+
 ## 🙏 Credits
 
 - **[MetaCubeX/mihomo](https://github.com/MetaCubeX/mihomo)** — Proxy core engine
@@ -296,6 +295,8 @@ Disable OpenClash before installing:
 ## ⭐ Support
 
 If DinoClash helped you, please give it a ⭐ star on GitHub!
+
+**Share with your friends who use OpenWrt routers!**
 
 ---
 
