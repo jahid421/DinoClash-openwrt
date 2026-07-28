@@ -273,34 +273,6 @@ Disable OpenClash before installing:
     # Visit: https://github.com/MetaCubeX/mihomo/releases
 
 ---
-
-## 📂 File Structure
-
-    /etc/mihomo/
-    ├── config.yaml          # Active config
-    ├── nft.conf             # Firewall rules
-    ├── transparent          # Auto-bypass toggle (0/1)
-    ├── enabled              # Service state (0/1)
-    ├── geoip.dat            # GeoIP database
-    ├── geosite.dat          # GeoSite database
-    ├── Country.mmdb         # Country database
-    ├── profiles/            # Config backups
-    └── ui/                  # MetaCubeXD dashboard
-
-    /usr/bin/mihomo          # Core binary
-    /etc/init.d/mihomo       # Service script
-
-    /www/cgi-bin/
-    ├── mihomo-api           # Status/control API
-    ├── mihomo-cfg           # Config upload + auto-optimize
-    └── mihomo-sub           # Subscription handler
-
-    /usr/lib/lua/luci/
-    ├── controller/mihomo.lua    # LuCI menu
-    └── view/mihomo/main.htm     # LuCI panel UI
-
----
-
 ## 🙏 Credits
 
 - **[MetaCubeX/mihomo](https://github.com/MetaCubeX/mihomo)** — Proxy core engine
