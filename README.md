@@ -63,7 +63,6 @@ DinoClash is designed for routers with limited resources. It focuses on simplici
 | **Versions** | OpenWrt v21 to v25+ |
 | **Architectures** | All (x86, ARM, MIPS, RISC-V) |
 
-> **Note:** DinoClash is NOT a replacement for OpenClash. It's a lightweight alternative for users who prefer simplicity and speed. We respect and appreciate the OpenClash project and community. ❤️
 
 ---
 
