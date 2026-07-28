@@ -6,10 +6,7 @@ STOP=10
 TRANSPARENT_FILE="/etc/mihomo/transparent"
 ENABLED_FILE="/etc/mihomo/enabled"
 
-# Check if user wants mihomo to auto-start
 should_start() {
-    # Default: enabled (1)
-    # If enabled file says "0", don't auto-start
     if [ -f "$ENABLED_FILE" ] && [ "$(cat $ENABLED_FILE)" = "0" ]; then
         return 1
     fi
@@ -17,9 +14,8 @@ should_start() {
 }
 
 start_service() {
-    # Check if enabled by user
     if ! should_start; then
-        logger -t mihomo "Mihomo is disabled by user, not starting"
+        logger -t dinoclash "DinoClash disabled by user"
         return 0
     fi
     
@@ -38,27 +34,55 @@ start_service() {
         setup_transparent
     fi
     
-    logger -t mihomo "Mihomo started (user preference: enabled)"
+    logger -t dinoclash "DinoClash started"
 }
 
 stop_service() {
     cleanup_transparent
-    logger -t mihomo "Mihomo stopped"
+    logger -t dinoclash "DinoClash stopped"
 }
 
 setup_transparent() {
-    # Auto-detect LAN interface
     LAN_IF=$(uci get network.lan.device 2>/dev/null || echo "br-lan")
-    
-    # Update nft.conf with detected LAN interface
     sed -i "s/iifname != \"[^\"]*\"/iifname != \"$LAN_IF\"/g" /etc/mihomo/nft.conf 2>/dev/null
     
-    # Apply firewall rules
-    nft -f /etc/mihomo/nft.conf 2>/dev/null || true
+    # Try nftables first (OpenWrt 22.03+)
+    if command -v nft >/dev/null 2>&1; then
+        nft -f /etc/mihomo/nft.conf 2>/dev/null || true
+        logger -t dinoclash "Transparent proxy: nftables"
+    # Fallback to iptables (OpenWrt 21.02)
+    elif command -v iptables >/dev/null 2>&1; then
+        iptables -t nat -N DINOCLASH 2>/dev/null || iptables -t nat -F DINOCLASH
+        iptables -t nat -A DINOCLASH -d 0.0.0.0/8 -j RETURN
+        iptables -t nat -A DINOCLASH -d 10.0.0.0/8 -j RETURN
+        iptables -t nat -A DINOCLASH -d 127.0.0.0/8 -j RETURN
+        iptables -t nat -A DINOCLASH -d 169.254.0.0/16 -j RETURN
+        iptables -t nat -A DINOCLASH -d 172.16.0.0/12 -j RETURN
+        iptables -t nat -A DINOCLASH -d 192.168.0.0/16 -j RETURN
+        iptables -t nat -A DINOCLASH -d 224.0.0.0/4 -j RETURN
+        iptables -t nat -A DINOCLASH -d 240.0.0.0/4 -j RETURN
+        iptables -t nat -A DINOCLASH -p udp --dport 53 -j REDIRECT --to-ports 1053
+        iptables -t nat -A DINOCLASH -p tcp --dport 53 -j REDIRECT --to-ports 1053
+        iptables -t nat -A DINOCLASH -p udp --dport 443 -j REDIRECT --to-ports 7892
+        iptables -t nat -A DINOCLASH -p tcp -j REDIRECT --to-ports 7892
+        iptables -t nat -A PREROUTING -i $LAN_IF -j DINOCLASH
+        logger -t dinoclash "Transparent proxy: iptables (legacy)"
+    else
+        logger -t dinoclash "WARNING: No firewall tool found!"
+    fi
 }
 
 cleanup_transparent() {
+    # Cleanup nftables
     nft delete table inet mihomo 2>/dev/null || true
+    
+    # Cleanup iptables
+    if command -v iptables >/dev/null 2>&1; then
+        LAN_IF=$(uci get network.lan.device 2>/dev/null || echo "br-lan")
+        iptables -t nat -D PREROUTING -i $LAN_IF -j DINOCLASH 2>/dev/null || true
+        iptables -t nat -F DINOCLASH 2>/dev/null || true
+        iptables -t nat -X DINOCLASH 2>/dev/null || true
+    fi
 }
 
 service_triggers() {
