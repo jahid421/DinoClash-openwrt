@@ -47,20 +47,23 @@ A complete OpenClash alternative with auto-bypass, custom LuCI panel, YAML uploa
 
 ---
 
-## 📊 DinoClash vs OpenClash
+## 📊 Why DinoClash?
 
-| Feature | OpenClash | DinoClash |
-|---|---|---|
-| RAM Usage | 80-120MB | **25-40MB** |
-| Boot Time | 15-30 sec | **3-5 sec** |
-| Install | Complex | **One command** |
-| YAML Upload | Manual | **Auto-optimized** |
-| Video Streaming | Basic | **QUIC support** |
-| Mobile Fix | No | **Built-in** |
-| Config Validation | No | **Yes** |
-| Architecture | Limited | **Universal** |
-| OpenWrt v25 | No | **Yes** |
-| Codebase | 15,000+ lines | **~500 lines** |
+DinoClash is designed for routers with limited resources. It focuses on simplicity, speed, and universal compatibility.
+
+| Feature | Details |
+|---|---|
+| **RAM** | ~25MB (great for 128MB routers) |
+| **Boot** | 3-5 seconds |
+| **Install** | One command |
+| **YAML** | Auto-optimized on upload |
+| **Video** | QUIC redirect support |
+| **Mobile** | DNS optimized |
+| **Validation** | Config tested before apply |
+| **Versions** | OpenWrt v21 to v25+ |
+| **Architectures** | All (x86, ARM, MIPS, RISC-V) |
+
+> **Note:** DinoClash is NOT a replacement for OpenClash. It's a lightweight alternative for users who prefer simplicity and speed. We respect and appreciate the OpenClash project and community. ❤️
 
 ---
 
