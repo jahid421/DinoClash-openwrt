@@ -3,6 +3,7 @@
 # 🦕 DinoClash for OpenWrt - Universal Installer
 # Repo: https://github.com/jahid421/DinoClash-openwrt
 # Developer: Jahid Hasan Shuvo
+# Supports: OpenWrt v21 to v25+ | All Architectures
 # ═══════════════════════════════════════════════
 
 set -e
@@ -16,6 +17,7 @@ echo "╔═══════════════════════�
 echo "║  🦕 DinoClash for OpenWrt            ║"
 echo "║  Auto-bypass (Redirect Mode)         ║"
 echo "║  Universal - All Architectures       ║"
+echo "║  Supports: v21 to v25+               ║"
 echo "║  Developer: Jahid Hasan Shuvo        ║"
 echo "╚══════════════════════════════════════╝"
 echo ""
@@ -25,23 +27,43 @@ echo ""
 # ═══════════════════════════════════════════════
 if [ ! -f /etc/openwrt_release ]; then
     echo "❌ ERROR: This script only works on OpenWrt!"
-    echo "   Please install OpenWrt first."
     exit 1
 fi
 echo "[✓] OpenWrt detected"
+
+# Show version
+OWRT_VER=$(. /etc/openwrt_release 2>/dev/null; echo "$DISTRIB_RELEASE")
+echo "    Version: $OWRT_VER"
+
+# ═══════════════════════════════════════════════
+# DETECT PACKAGE MANAGER (opkg v21-v24 / apk v25+)
+# ═══════════════════════════════════════════════
+if command -v apk >/dev/null 2>&1; then
+    PKG="apk"
+    PKG_UPDATE="apk update"
+    PKG_INSTALL="apk add"
+    echo "[✓] Package manager: apk (v25+)"
+elif command -v opkg >/dev/null 2>&1; then
+    PKG="opkg"
+    PKG_UPDATE="opkg update"
+    PKG_INSTALL="opkg install"
+    echo "[✓] Package manager: opkg"
+else
+    echo "❌ ERROR: No package manager found!"
+    exit 1
+fi
 
 # ═══════════════════════════════════════════════
 # AUTO-INSTALL CURL
 # ═══════════════════════════════════════════════
 if ! command -v curl >/dev/null 2>&1; then
     echo "[*] curl not found, installing..."
-    opkg update >/dev/null 2>&1
-    opkg install curl ca-bundle ca-certificates >/dev/null 2>&1 || {
+    $PKG_UPDATE >/dev/null 2>&1
+    $PKG_INSTALL curl ca-bundle ca-certificates >/dev/null 2>&1 || {
         if command -v wget >/dev/null 2>&1; then
             USE_WGET=1
         else
             echo "❌ ERROR: Neither curl nor wget available!"
-            echo "   Please install manually: opkg install curl"
             exit 1
         fi
     }
@@ -92,8 +114,6 @@ M=$(detect_arch "$A")
 
 if [ -z "$M" ]; then
     echo "❌ ERROR: Cannot detect architecture!"
-    echo "   uname: $UNAME_ARCH"
-    echo "   owrt:  $OWRT_ARCH"
     echo "   Report: https://github.com/jahid421/DinoClash-openwrt/issues"
     exit 1
 fi
@@ -109,7 +129,7 @@ if [ "$AVAIL" -lt 30000 ]; then
     echo "⚠️  WARNING: Low disk space ($((AVAIL/1024)) MB free)"
     echo "   Required: ~40 MB"
     echo "   Small routers need USB extroot!"
-    echo "   Continue anyway? (5 sec to cancel with Ctrl+C)"
+    echo "   Continue anyway? (5 sec to cancel)"
     sleep 5
 fi
 
@@ -117,11 +137,19 @@ fi
 # INSTALL DEPENDENCIES
 # ═══════════════════════════════════════════════
 echo "[*] Installing dependencies..."
-opkg update >/dev/null 2>&1
-for p in curl ca-bundle ca-certificates ip-full kmod-tun kmod-nft-tproxy coreutils-nohup luci-compat luci-lib-ipkg luci-lib-nixio; do
-    opkg install $p >/dev/null 2>&1 || true
+$PKG_UPDATE >/dev/null 2>&1
+
+# Core packages
+for p in curl ca-bundle ca-certificates ip-full kmod-tun kmod-nft-tproxy coreutils-nohup; do
+    $PKG_INSTALL $p >/dev/null 2>&1 || true
 done
-echo "[✓] Dependencies installed"
+
+# LuCI compatibility (try all variants)
+for p in luci-compat luci-lib-ipkg luci-lib-nixio; do
+    $PKG_INSTALL $p >/dev/null 2>&1 || true
+done
+
+echo "[✓] Dependencies installed (via $PKG)"
 
 # ═══════════════════════════════════════════════
 # DOWNLOAD MIHOMO BINARY
@@ -172,8 +200,6 @@ else
     if [ "$FOUND" = "0" ]; then
         echo ""
         echo "❌ ERROR: No compatible binary found!"
-        echo "   Detected arch: $M"
-        echo "   Please check: https://github.com/MetaCubeX/mihomo/releases"
         echo "   Report: https://github.com/jahid421/DinoClash-openwrt/issues"
         exit 1
     fi
@@ -271,6 +297,9 @@ if pgrep -f mihomo >/dev/null 2>&1; then
     echo "🦕 ✅ INSTALLATION SUCCESSFUL!"
     echo ""
     echo "   DinoClash is RUNNING"
+    echo "   OpenWrt: $OWRT_VER"
+    echo "   Arch: $M"
+    echo "   Pkg: $PKG"
     echo ""
     echo "   🌐 LuCI Panel:"
     echo "      http://$LAN_IP"
@@ -289,6 +318,8 @@ else
     echo "🦕 ❌ INSTALLATION FAILED!"
     echo ""
     echo "   DinoClash is NOT running"
+    echo "   OpenWrt: $OWRT_VER"
+    echo "   Arch: $M"
     echo ""
     echo "   🔧 Troubleshooting:"
     echo ""
