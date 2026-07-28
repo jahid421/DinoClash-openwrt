@@ -64,6 +64,7 @@ td{padding:6px 8px;border-bottom:1px solid #f1f5f9;font-size:12px}
 <button onclick="sp('conn',this)">Connections</button>
 <button onclick="sp('log',this)">Log</button>
 </div>
+
 <div class="pg show" id="pg-overview">
 <div class="card">
 <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
@@ -86,23 +87,6 @@ td{padding:6px 8px;border-bottom:1px solid #f1f5f9;font-size:12px}
 <button class="btn b3" id="tpbtn" onclick="toggleTP()">Loading...</button>
 </div>
 <div class="warn">⚠️ If internet breaks after enabling, click again to disable.</div>
-</div>
-<div class="card">
-<div class="title">Upload YAML Config</div>
-<div class="upbox" onclick="document.getElementById('yf').click()">
-<div style="font-size:30px">&#128196;</div>
-<div style="font-weight:700;color:#6366f1">Click to select YAML file</div>
-<div id="fname" style="margin-top:8px;color:#16a34a;font-weight:700"></div>
-<input id="yf" type="file" accept=".yaml,.yml,.txt" onchange="pf(this)">
-</div>
-<div class="btns" style="margin-top:12px">
-<button class="btn b4" id="ubtn" onclick="dup()" disabled>Upload & Apply</button>
-</div>
-<div style="margin-top:14px">
-<input class="inp" id="suburl" placeholder="Subscription URL (optional)">
-<div class="btns"><button class="btn b4" onclick="dsub()">Download & Apply</button></div>
-<div class="sm" id="submsg" style="margin-top:6px"></div>
-</div>
 </div>
 <div class="card">
 <div class="title">Mode</div>
@@ -137,6 +121,7 @@ td{padding:6px 8px;border-bottom:1px solid #f1f5f9;font-size:12px}
 <div class="ir"><span>Manual Proxy</span><span id="mp">-</span></div>
 </div>
 </div>
+
 <div class="pg" id="pg-proxy">
 <div class="card">
 <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
@@ -149,7 +134,25 @@ td{padding:6px 8px;border-bottom:1px solid #f1f5f9;font-size:12px}
 </div>
 <div id="pgs">Loading...</div>
 </div>
+
 <div class="pg" id="pg-config">
+<div class="card">
+<div class="title">Upload YAML Config</div>
+<div class="upbox" onclick="document.getElementById('yf').click()">
+<div style="font-size:30px">&#128196;</div>
+<div style="font-weight:700;color:#6366f1">Click to select YAML file</div>
+<div id="fname" style="margin-top:8px;color:#16a34a;font-weight:700"></div>
+<input id="yf" type="file" accept=".yaml,.yml,.txt" onchange="pf(this)">
+</div>
+<div class="btns" style="margin-top:12px">
+<button class="btn b4" id="ubtn" onclick="dup()" disabled>Upload & Apply</button>
+</div>
+<div style="margin-top:14px">
+<input class="inp" id="suburl" placeholder="Subscription URL (optional)">
+<div class="btns"><button class="btn b4" onclick="dsub()">Download & Apply</button></div>
+<div class="sm" id="submsg" style="margin-top:6px"></div>
+</div>
+</div>
 <div class="card">
 <div class="title">Config Editor</div>
 <textarea class="ta" id="ced"></textarea>
@@ -160,6 +163,7 @@ td{padding:6px 8px;border-bottom:1px solid #f1f5f9;font-size:12px}
 <div id="cmsg" style="margin-top:8px"></div>
 </div>
 </div>
+
 <div class="pg" id="pg-conn">
 <div class="card">
 <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
@@ -174,6 +178,7 @@ td{padding:6px 8px;border-bottom:1px solid #f1f5f9;font-size:12px}
 <table><thead><tr><th>Host</th><th>Net</th><th>Chain</th><th>Rule</th><th>Up</th><th>Down</th><th></th></tr></thead><tbody id="cnb"></tbody></table>
 </div>
 </div>
+
 <div class="pg" id="pg-log">
 <div class="card">
 <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px">
@@ -189,6 +194,7 @@ td{padding:6px 8px;border-bottom:1px solid #f1f5f9;font-size:12px}
 <div class="lb" id="llb"></div>
 </div>
 </div>
+
 <div class="credit-card">
 <div style="font-size:36px;margin-bottom:4px">🦕</div>
 <div style="font-size:22px;font-weight:800;margin-bottom:4px;color:#a5f3fc">DinoClash</div>
