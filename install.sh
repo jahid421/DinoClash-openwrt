@@ -31,7 +31,6 @@ if [ ! -f /etc/openwrt_release ]; then
 fi
 echo "[✓] OpenWrt detected"
 
-# Show version
 OWRT_VER=$(. /etc/openwrt_release 2>/dev/null; echo "$DISTRIB_RELEASE")
 echo "    Version: $OWRT_VER"
 
@@ -139,12 +138,10 @@ fi
 echo "[*] Installing dependencies..."
 $PKG_UPDATE >/dev/null 2>&1
 
-# Core packages
 for p in curl ca-bundle ca-certificates ip-full kmod-tun kmod-nft-tproxy coreutils-nohup; do
     $PKG_INSTALL $p >/dev/null 2>&1 || true
 done
 
-# LuCI compatibility (try all variants)
 for p in luci-compat luci-lib-ipkg luci-lib-nixio; do
     $PKG_INSTALL $p >/dev/null 2>&1 || true
 done
@@ -249,10 +246,71 @@ dl "$REPO/files/mihomo-api" /www/cgi-bin/mihomo-api
 dl "$REPO/files/mihomo-cfg" /www/cgi-bin/mihomo-cfg
 dl "$REPO/files/mihomo-sub" /www/cgi-bin/mihomo-sub
 chmod +x /www/cgi-bin/mihomo-*
+
+# LuCI Lua controller (v21-v24)
 mkdir -p /usr/lib/lua/luci/controller
 dl "$REPO/files/mihomo.lua" /usr/lib/lua/luci/controller/mihomo.lua
+
+# LuCI view
 mkdir -p /usr/lib/lua/luci/view/mihomo
 dl "$REPO/files/main.htm" /usr/lib/lua/luci/view/mihomo/main.htm
+
+# v25+ ucode menu support (JSON menu definition)
+if [ -d /usr/share/luci/menu.d ]; then
+    cat > /usr/share/luci/menu.d/luci-app-dinoclash.json << 'JSONEOF'
+{
+    "admin/services/mihomo": {
+        "title": "DinoClash \ud83e\udd95",
+        "order": 60,
+        "action": {
+            "type": "firstchild"
+        }
+    },
+    "admin/services/mihomo/overview": {
+        "title": "Overview",
+        "order": 1,
+        "action": {
+            "type": "template",
+            "path": "mihomo/main"
+        }
+    },
+    "admin/services/mihomo/proxy": {
+        "title": "Proxy",
+        "order": 2,
+        "action": {
+            "type": "template",
+            "path": "mihomo/main"
+        }
+    },
+    "admin/services/mihomo/config": {
+        "title": "Config",
+        "order": 3,
+        "action": {
+            "type": "template",
+            "path": "mihomo/main"
+        }
+    },
+    "admin/services/mihomo/connections": {
+        "title": "Connections",
+        "order": 4,
+        "action": {
+            "type": "template",
+            "path": "mihomo/main"
+        }
+    },
+    "admin/services/mihomo/log": {
+        "title": "Log",
+        "order": 5,
+        "action": {
+            "type": "template",
+            "path": "mihomo/main"
+        }
+    }
+}
+JSONEOF
+    echo "[✓] v25+ ucode menu added"
+fi
+
 echo "[✓] DinoClash panel installed"
 
 # ═══════════════════════════════════════════════
