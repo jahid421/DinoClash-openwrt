@@ -13,28 +13,26 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
     
     if [ -s "$TMP" ]; then
         # STEP 1: SPEED OPTIMIZATION
-        awk '
-        BEGIN { in_group=0 }
-        /^  - name:/ { in_group=1 }
-        /^[a-z]/ && !/^  / { in_group=0 }
-        {
-            if (in_group && /^    strategy: round-robin$/) {
-                print "    strategy: consistent-hashing"
-                next
-            }
-            print
-        }
-        ' "$TMP" > "${TMP}.opt" && mv "${TMP}.opt" "$TMP"
+        # Convert load-balance to fallback (skip dead proxies = consistent speed)
+        sed -i 's/type: load-balance/type: fallback/g' "$TMP"
+        sed -i '/strategy: consistent-hashing/d' "$TMP"
+        sed -i '/strategy: round-robin/d' "$TMP"
         
-        sed -i 's/interval: 300/interval: 120/g' "$TMP"
-        sed -i 's/interval: 600/interval: 120/g' "$TMP"
-        sed -i 's/interval: 900/interval: 120/g' "$TMP"
-        sed -i 's/interval: 180/interval: 120/g' "$TMP"
-        sed -i 's/tolerance: 50/tolerance: 20/g' "$TMP"
-        sed -i 's/tolerance: 100/tolerance: 20/g' "$TMP"
-        sed -i 's/tolerance: 150/tolerance: 20/g' "$TMP"
-        sed -i 's/tolerance: 30/tolerance: 20/g' "$TMP"
+        # Speed intervals
+        sed -i 's/interval: 300/interval: 60/g' "$TMP"
+        sed -i 's/interval: 600/interval: 60/g' "$TMP"
+        sed -i 's/interval: 900/interval: 60/g' "$TMP"
+        sed -i 's/interval: 180/interval: 60/g' "$TMP"
+        sed -i 's/interval: 120/interval: 60/g' "$TMP"
         
+        # Ultra fast tolerance
+        sed -i 's/tolerance: 50/tolerance: 10/g' "$TMP"
+        sed -i 's/tolerance: 100/tolerance: 10/g' "$TMP"
+        sed -i 's/tolerance: 150/tolerance: 10/g' "$TMP"
+        sed -i 's/tolerance: 30/tolerance: 10/g' "$TMP"
+        sed -i 's/tolerance: 20/tolerance: 10/g' "$TMP"
+        
+        # Add lazy: true to url-test groups
         awk '
         BEGIN { in_urltest=0; has_lazy=0 }
         /^  - name:/ {
@@ -68,8 +66,9 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
         grep -q '^global-client-fingerprint:' "$TMP" || echo 'global-client-fingerprint: chrome' >> "$TMP"
         grep -q '^tcp-concurrent:' "$TMP" || echo 'tcp-concurrent: true' >> "$TMP"
         grep -q '^unified-delay:' "$TMP" || echo 'unified-delay: true' >> "$TMP"
-        grep -q '^keep-alive-interval:' "$TMP" || echo 'keep-alive-interval: 10' >> "$TMP"
-        grep -q '^keep-alive-idle:' "$TMP" || echo 'keep-alive-idle: 10' >> "$TMP"
+        grep -q '^keep-alive-interval:' "$TMP" || echo 'keep-alive-interval: 3' >> "$TMP"
+        grep -q '^keep-alive-idle:' "$TMP" || echo 'keep-alive-idle: 3' >> "$TMP"
+        grep -q '^connection-pool:' "$TMP" || echo 'connection-pool: true' >> "$TMP"
         
         # STEP 3: PROFILE
         if ! grep -q '^profile:' "$TMP"; then
@@ -123,7 +122,7 @@ TEOF
             sed -i '/^tun:/,/^[a-z]/ s/^  enable: true$/  enable: false/' "$TMP"
         fi
         
-        # STEP 6: DNS (redir-host + mobile fix)
+        # STEP 6: DNS (redir-host + mobile fix + ultra fast)
         if ! grep -q '^dns:' "$TMP"; then
             cat >> "$TMP" << 'DEOF'
 
