@@ -215,8 +215,10 @@ echo "[✓] DinoClash core installed"
 # SETUP DIRECTORIES & STATE
 # ═══════════════════════════════════════════════
 mkdir -p $D/profiles $D/providers $D/ruleset $D/ui $D/scripts
-echo "1" > $D/transparent
-echo "1" > $D/enabled
+
+# IMPORTANT: Service disabled by default (no internet break)
+echo "0" > $D/transparent
+echo "0" > $D/enabled
 
 # ═══════════════════════════════════════════════
 # DOWNLOAD GEOIP
@@ -315,31 +317,40 @@ uci commit firewall
 /etc/init.d/firewall restart 2>/dev/null || true
 
 # ═══════════════════════════════════════════════
-# ENABLE & START (silent)
+# APPLY PANEL (don't start service yet)
 # ═══════════════════════════════════════════════
-/etc/init.d/mihomo enable >/dev/null 2>&1
 rm -rf /tmp/luci-*
 /etc/init.d/rpcd restart >/dev/null 2>&1
 /etc/init.d/uhttpd restart >/dev/null 2>&1
-/etc/init.d/mihomo start >/dev/null 2>&1
+
+# Service NOT started — user must upload config first
+echo "[✓] Panel ready (service is stopped)"
 
 echo ""
 echo "═══════════════════════════════════════"
 echo "🦕 DinoClash Installed Successfully!"
 echo ""
+echo "   ⚠️  Service is STOPPED (safe mode)"
+echo "   Internet works normally until you"
+echo "   upload YAML config and start the service."
+echo ""
 echo "   🌐 LuCI Panel: http://$LAN_IP"
+echo "                  → Services → DinoClash 🦕"
 echo "   📊 Dashboard:  http://$LAN_IP:9595/ui"
 echo "   🔑 Secret:     flclash123"
 echo ""
-echo "   ✨ New Features:"
+echo "   📄 Next Steps:"
+echo "      1. Open LuCI Panel"
+echo "      2. Go to Config tab"
+echo "      3. Upload your YAML file"
+echo "      4. Click Start button"
+echo ""
+echo "   ✨ Features:"
 echo "      🌗 Dark/Light Theme"
 echo "      ⚡ Auto Proxy Testing"
 echo "      📊 Data Usage Tracker"
 echo "      🔔 Notifications"
 echo "      📱 Mobile Responsive"
-echo ""
-echo "   📄 Upload YAML from LuCI panel"
-echo "   ⚠️  Turn OFF manual proxy on devices"
 echo ""
 echo "═══════════════════════════════════════"
 echo "🦕 DinoClash by Jahid Hasan Shuvo"
