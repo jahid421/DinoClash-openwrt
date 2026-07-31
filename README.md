@@ -2,12 +2,13 @@
 ![Forks](https://img.shields.io/github/forks/jahid421/DinoClash-openwrt?style=for-the-badge&logo=github)
 ![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)
 ![OpenWrt](https://img.shields.io/badge/OpenWrt-21.02--25.x-blue?style=for-the-badge&logo=openwrt)
+![Version](https://img.shields.io/badge/version-2.0-orange?style=for-the-badge)
 
 # 🦕 DinoClash for OpenWrt
 
 **Lightweight, fast, and universal proxy panel for OpenWrt routers.**
 
-A proxy panel with auto-bypass, custom LuCI interface, YAML upload with auto-optimization, video streaming support, and mobile DNS fix — works on ALL architectures and OpenWrt versions (v21 to v25+) without any device setup.
+A modern proxy panel with auto-bypass, custom LuCI interface, dark/light theme, auto proxy testing, data usage tracking, browser notifications, and universal compatibility — works on ALL architectures and OpenWrt versions (v21 to v25+) without any device setup.
 
 ---
 
@@ -20,6 +21,13 @@ A proxy panel with auto-bypass, custom LuCI interface, YAML upload with auto-opt
 - **Ultra Fast** — interval:120s, tolerance:20ms, lazy mode
 - **Mihomo Core** — Same engine as FLClash
 
+### 🎨 Modern UI
+- **🌗 Dark/Light Theme** — Toggle with one click, saved automatically
+- **📱 Fully Responsive** — Perfect on mobile, tablet, desktop, large screens
+- **🎯 Touch-Friendly** — Large buttons, smooth animations
+- **⚡ Fast Loading** — Optimized CSS and minimal dependencies
+- **🎨 Beautiful Design** — Modern gradients, smooth transitions
+
 ### 🎨 Panel
 - **Custom LuCI Panel** — Services → DinoClash 🦕
 - **YAML Upload** — Auto-optimized for speed on upload
@@ -29,13 +37,28 @@ A proxy panel with auto-bypass, custom LuCI interface, YAML upload with auto-opt
 - **Real-time Monitor** — Traffic, connections, logs
 - **Mode Switch** — Rule / Global / Direct
 
+### ⚡ Smart Features
+- **🔄 Auto Proxy Testing** — Automatic latency testing at intervals (1/2/5/10/15/30 min)
+- **🎯 Auto Select Fastest** — Automatically switches to best proxy
+- **📊 Data Usage Tracker** — Today, Monthly, Session tracking with reset options
+- **🔔 Browser Notifications** — Alerts for proxy failures, service down, connection lost
+- **🔊 Sound Alerts** — Optional audio notifications
+- **😴 Snooze Mode** — Mute alerts temporarily (5min/10min/30min/1hr)
+- **⏰ Real-time Monitor** — Traffic, connections, logs
+
 ### ⚡ Speed
 - **Load Balancing** — consistent-hashing strategy
 - **Lazy Mode** — Skip dead proxies automatically
 - **Keep-alive** — 10s fast reconnect
 - **Video Streaming** — QUIC redirect support
 - **Mobile DNS Fix** — redir-host mode
-- **Silent Logging** — Zero CPU overhead
+- **TCP Concurrent** — Multiple TCP connections
+
+### 🖥️ Remote Desktop Support
+- **UltraViewer** — Built-in bypass rules
+- **AnyDesk** — Built-in bypass rules
+- **TeamViewer** — Built-in bypass rules
+- **RustDesk, LogMeIn, Splashtop, Parsec** — All included
 
 ### 🔧 Smart
 - **Config Validation** — Test before apply
@@ -50,7 +73,7 @@ A proxy panel with auto-bypass, custom LuCI interface, YAML upload with auto-opt
 
 ## 📊 Why DinoClash?
 
-DinoClash is designed for routers with limited resources. It focuses on simplicity, speed, and universal compatibility.
+DinoClash is designed for routers with limited resources. It focuses on simplicity, speed, universal compatibility, and modern user experience.
 
 | Feature | Details |
 |---|---|
@@ -58,11 +81,15 @@ DinoClash is designed for routers with limited resources. It focuses on simplici
 | **Boot** | 3-5 seconds |
 | **Install** | One command |
 | **YAML** | Auto-optimized on upload |
+| **UI** | Modern, responsive, dark mode |
+| **Notifications** | Real-time alerts |
+| **Auto Testing** | Smart proxy selection |
+| **Data Tracking** | Complete usage stats |
 | **Video** | QUIC redirect support |
 | **Mobile** | DNS optimized (redir-host) |
 | **Validation** | Config tested before apply |
 | **Versions** | OpenWrt v21 to v25+ |
-| **Architectures** | All (x86, ARM, MIPS, RISC-V) |
+| **Architectures** | All (x86, ARM, MIPS, RISC-V, LoongArch) |
 | **Package Managers** | opkg (v21-v24) + apk (v25+) |
 
 ---
@@ -75,6 +102,7 @@ DinoClash is designed for routers with limited resources. It focuses on simplici
 | Storage | 32MB (USB extroot) | 64MB+ |
 | CPU | 500MHz single-core | 880MHz+ dual-core |
 | OpenWrt | 21.02 | 23.05+ |
+| Browser | Chrome/Firefox/Safari | Latest version |
 
 ---
 
@@ -88,6 +116,7 @@ DinoClash is designed for routers with limited resources. It focuses on simplici
 | **MIPSEL** | MikroTik RB750Gr3, Xiaomi 4A Gigabit, MT7621 |
 | **MIPS** | TP-Link Archer C7, Atheros AR9344 |
 | **RISC-V** | Newer boards |
+| **LoongArch** | Loongson-based routers |
 
 ---
 
@@ -128,11 +157,19 @@ DinoClash is designed for routers with limited resources. It focuses on simplici
 - Click **"Upload & Apply"**
 - Config auto-optimized and applied!
 
-### Step 3: Done!
+### Step 3: Enable Features
+
+- **🔄 Auto-Bypass** — Turn ON for transparent proxy
+- **⚡ Auto Proxy Testing** — Enable for automatic fastest proxy selection
+- **🔔 Notifications** — Enable for real-time alerts
+- **🌗 Theme** — Toggle dark/light mode (top-right corner)
+
+### Step 4: Done!
 
 - All devices on your network auto-use proxy
 - No manual setup on any device
 - Proxy sorted by latency (fastest first)
+- Fastest proxy auto-selected
 
 ---
 
@@ -141,8 +178,9 @@ DinoClash is designed for routers with limited resources. It focuses on simplici
 ### Overview Tab
 - Start / Stop / Restart service
 - Auto-Bypass toggle (ON/OFF)
-- Upload YAML config
-- Subscription URL support
+- 🔔 Notifications settings
+- 📊 Data Usage Tracker
+- ⚡ Auto Proxy Testing settings
 - Mode switch (Rule/Global/Direct)
 - Real-time traffic graph
 - Memory usage display
@@ -154,20 +192,115 @@ DinoClash is designed for routers with limited resources. It focuses on simplici
 - Test all delays with one click
 - Search proxies by name
 - Click to select active node
+- Color-coded latency (green/yellow/red)
 
 ### Config Tab
+- Upload YAML file
+- Subscription URL support
 - Full YAML editor
 - Save & auto-restart
+- Config validation before apply
 
 ### Connections Tab
 - Live active connections
 - Filter by host name
 - Close individual or all connections
+- Sortable by traffic
 
 ### Log Tab
 - Real-time log streaming
 - Filter by level (Info / Warning / Error)
 - Clear logs
+- Color-coded messages
+
+---
+
+## ⚡ Auto Proxy Testing
+
+**Automatically test all proxies and switch to the fastest one.**
+
+### Features:
+- ✅ Enable/Disable toggle
+- ⏰ Custom interval (1/2/5/10/15/30 minutes)
+- 🎯 Auto Select Fastest proxy
+- 🚀 Manual Test button
+- 📊 Live status badges (ON/OFF/TESTING/DONE)
+- 💾 Settings saved automatically
+- 🕐 Last test time display
+
+### How to Use:
+1. Go to Overview tab
+2. Find "⚡ Auto Proxy Testing" card
+3. Enable the toggle
+4. Choose interval (default: 5 minutes)
+5. Enable "Auto Select Fastest" (recommended)
+
+---
+
+## 📊 Data Usage Tracking
+
+**Track your data consumption in real-time.**
+
+### Features:
+- 📅 **Today Usage** — Auto-resets at midnight
+- 📆 **Monthly Usage** — Auto-resets on new month
+- ⏱️ **Session Usage** — From page open
+- ↑↓ **Split View** — Upload/Download separated
+- 💾 **Auto Save** — Every 30 seconds + on page close
+- 🔄 **Reset Options** — Session/Today/All
+
+---
+
+## 🔔 Notifications
+
+**Get real-time alerts for proxy issues.**
+
+### Alert Types:
+- 🔴 Service Stopped
+- 🔴 All Proxies Down
+- ⚠️ Connection Lost
+- ⚠️ Proxy Count Dropped (>50%)
+- 🐌 Slow Proxies (>500ms)
+- ✅ Service Restored
+
+### Features:
+- 🔔 Browser Notifications
+- 🔊 Sound Alerts (optional)
+- 😴 Snooze (5min/10min/30min/1hour)
+- 🧪 Test button
+- ⏰ Smart cooldown (5min between same alerts)
+- 💾 Settings persist
+
+### How to Enable:
+1. Go to Overview tab
+2. Find "🔔 Notifications" card
+3. Toggle "Enable Notifications" ON
+4. Click "Enable Browser Notifications" and allow
+5. Optionally enable "Sound Alert"
+6. Click "Test" to verify
+
+---
+
+## 🖥️ Remote Desktop Support (UltraViewer / AnyDesk)
+
+Remote desktop applications like UltraViewer, AnyDesk, and TeamViewer may not work properly through proxy. **DinoClash includes built-in bypass rules in the default config.**
+
+### Included Bypass Rules:
+- UltraViewer (`ultraviewer.net`)
+- AnyDesk (`anydesk.com`)
+- TeamViewer (`teamviewer.com`)
+- RustDesk (`rustdesk.com`)
+- LogMeIn (`logmein.com`)
+- GoToMyPC (`gotomypc.com`)
+- Splashtop (`splashtop.com`)
+- Parsec (`parsec.app`)
+
+### If Remote Desktop Still Doesn't Work:
+
+Add your app's domain to config rules:
+
+    rules:
+      - 'DOMAIN-KEYWORD,your-app-name,DIRECT'
 
 ---
 
@@ -192,6 +325,14 @@ DinoClash is designed for routers with limited resources. It focuses on simplici
 ### Disable Auto-Bypass
 
     echo "0" > /etc/mihomo/transparent && /etc/init.d/mihomo restart
+
+### Test Config
+
+    /usr/bin/mihomo -d /etc/mihomo -t
+
+### Check nftables Rules
+
+    nft list table inet mihomo
 
 ### Full Update (all files from GitHub)
 
@@ -266,13 +407,35 @@ Before installing DinoClash:
     /etc/init.d/mihomo restart
     nft delete table inet mihomo 2>/dev/null
 
+### nft rules not loading?
+
+    nft -f /etc/mihomo/nft.conf
+    nft list table inet mihomo
+
 ### Wrong architecture detected?
 
     uname -m
     cat /etc/openwrt_release | grep ARCH
 
+### Notifications not working?
+
+- Check browser permission (chrome://settings/content/notifications)
+- Try different browser (Chrome/Firefox recommended)
+- Enable "Sound Alert" for audible feedback
+- Make sure "Enable Notifications" toggle is ON
+
 ---
 
+## ⚠️ Known Limitations
+
+- **Remote Desktop Apps** — Some may not work with proxy. Default bypass rules included.
+- **Router Load** — Very old MIPS routers with <128MB RAM may struggle
+- **UDP Support** — Some proxy protocols have limited UDP support
+- **IPv6** — Currently disabled by default for stability
+- **Notifications** — Only work when panel tab is open (browser limitation)
+- **Data Usage** — Stored per-browser (not synced across devices)
+
+---
 
 ## 🙏 Credits
 
@@ -307,3 +470,5 @@ MIT License — Free to use, modify, and distribute.
 ---
 
 **Made with 🦕 for the OpenWrt community**
+
+**Version 2.0** • Modern UI, Dark Mode, Auto Testing, Data Tracking, Notifications
