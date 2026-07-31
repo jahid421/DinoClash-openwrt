@@ -5,7 +5,6 @@ STOP=10
 
 TRANSPARENT_FILE="/etc/mihomo/transparent"
 ENABLED_FILE="/etc/mihomo/enabled"
-BYPASS_FILE="/etc/mihomo/bypass_macs"
 
 should_start() {
     if [ -f "$ENABLED_FILE" ] && [ "$(cat "$ENABLED_FILE")" = "0" ]; then
@@ -29,12 +28,10 @@ start_service() {
     procd_set_param pidfile /var/run/mihomo.pid
     procd_close_instance
 
-    # Wait core to come up, then apply transparent proxy
     sleep 3
 
     if [ -f "$TRANSPARENT_FILE" ] && [ "$(cat "$TRANSPARENT_FILE")" = "1" ]; then
         setup_transparent
-        restore_bypass
     fi
 
     logger -t dinoclash "DinoClash started"
@@ -75,18 +72,6 @@ setup_transparent() {
     else
         logger -t dinoclash "WARNING: No firewall tool found!"
     fi
-}
-
-restore_bypass() {
-    [ -f "$BYPASS_FILE" ] || return 0
-    command -v nft >/dev/null 2>&1 || return 0
-
-    while IFS= read -r MAC; do
-        [ -z "$MAC" ] && continue
-        nft add element inet mihomo bypass_mac { $MAC } 2>/dev/null || true
-    done < "$BYPASS_FILE"
-
-    logger -t dinoclash "Bypass list restored"
 }
 
 cleanup_transparent() {
