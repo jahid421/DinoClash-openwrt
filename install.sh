@@ -60,7 +60,6 @@ if ! command -v curl >/dev/null 2>&1; then
     $PKG_INSTALL curl ca-bundle ca-certificates >/dev/null 2>&1 || true
 fi
 
-# Re-check after install attempt
 if command -v curl >/dev/null 2>&1; then
     USE_WGET=0
 elif command -v wget >/dev/null 2>&1; then
@@ -146,9 +145,12 @@ for p in curl ca-bundle ca-certificates ip-full kmod-tun kmod-nft-tproxy coreuti
     $PKG_INSTALL $p >/dev/null 2>&1 || true
 done
 
-for p in luci-compat luci-lib-ipkg luci-lib-nixio; do
-    $PKG_INSTALL $p >/dev/null 2>&1 || true
-done
+# LuCI compat packages only for opkg (v21-v24)
+if [ "$PKG" = "opkg" ]; then
+    for p in luci-compat luci-lib-ipkg luci-lib-nixio; do
+        $PKG_INSTALL $p >/dev/null 2>&1 || true
+    done
+fi
 
 echo "[✓] Dependencies installed (via $PKG)"
 
@@ -235,7 +237,6 @@ dl "https://github.com/MetaCubeX/metacubexd/releases/latest/download/compressed-
 if [ -f /tmp/ui.tgz ] && [ -s /tmp/ui.tgz ]; then
     rm -rf $D/ui/*
     tar -xzf ui.tgz -C $D/ui/ 2>/dev/null || true
-    # Handle subfolder extraction
     if [ -d "$D/ui/dist" ]; then
         mv $D/ui/dist/* $D/ui/ 2>/dev/null || true
         rm -rf $D/ui/dist
@@ -269,7 +270,7 @@ dl "$REPO/files/mihomo.lua" /usr/lib/lua/luci/controller/mihomo.lua
 mkdir -p /usr/lib/lua/luci/view/mihomo
 dl "$REPO/files/main.htm" /usr/lib/lua/luci/view/mihomo/main.htm
 
-# v25+ ucode menu support (JSON menu definition)
+# v25+ ucode menu support
 if [ -d /usr/share/luci/menu.d ]; then
     cat > /usr/share/luci/menu.d/luci-app-dinoclash.json << 'JSONEOF'
 {
@@ -294,7 +295,6 @@ echo "[✓] DinoClash panel installed"
 LAN_IF=$(uci get network.lan.device 2>/dev/null || echo "br-lan")
 LAN_IP=$(uci -q get network.lan.ipaddr || echo "192.168.1.1")
 sed -i "s/iifname != \"br-lan\"/iifname != \"$LAN_IF\"/g" $D/nft.conf 2>/dev/null
-# Verify LAN interface was set correctly
 if ! grep -q "\"$LAN_IF\"" $D/nft.conf 2>/dev/null; then
     echo "[!] WARNING: nft.conf LAN interface may need manual fix"
 fi
@@ -315,72 +315,32 @@ uci commit firewall
 /etc/init.d/firewall restart 2>/dev/null || true
 
 # ═══════════════════════════════════════════════
-# ENABLE & START
+# ENABLE & START (silent)
 # ═══════════════════════════════════════════════
-/etc/init.d/mihomo enable
+/etc/init.d/mihomo enable >/dev/null 2>&1
 rm -rf /tmp/luci-*
 /etc/init.d/rpcd restart >/dev/null 2>&1
 /etc/init.d/uhttpd restart >/dev/null 2>&1
-/etc/init.d/mihomo start
-sleep 5
+/etc/init.d/mihomo start >/dev/null 2>&1
 
-# ═══════════════════════════════════════════════
-# FINAL STATUS CHECK
-# ═══════════════════════════════════════════════
 echo ""
 echo "═══════════════════════════════════════"
+echo "🦕 DinoClash Installed Successfully!"
 echo ""
-
-if pgrep -f mihomo >/dev/null 2>&1; then
-    echo "🦕 ✅ INSTALLATION SUCCESSFUL!"
-    echo ""
-    echo "   DinoClash is RUNNING"
-    echo "   OpenWrt: $OWRT_VER"
-    echo "   Arch: $M"
-    echo "   Pkg: $PKG"
-    echo ""
-    echo "   🌐 LuCI Panel:"
-    echo "      http://$LAN_IP"
-    echo "      → Services → DinoClash 🦕"
-    echo ""
-    echo "   📊 Dashboard:"
-    echo "      http://$LAN_IP:9595/ui"
-    echo "      Secret: flclash123"
-    echo ""
-    echo "   📄 Next Step:"
-    echo "      Upload your YAML config from LuCI panel"
-    echo ""
-    echo "   ⚠️  Turn OFF manual proxy on devices!"
-    echo ""
-    echo "   🖥️  Remote Desktop (UltraViewer/AnyDesk):"
-    echo "      Config এ rules add করে bypass করুন"
-    echo ""
-else
-    echo "🦕 ❌ INSTALLATION FAILED!"
-    echo ""
-    echo "   DinoClash is NOT running"
-    echo "   OpenWrt: $OWRT_VER"
-    echo "   Arch: $M"
-    echo ""
-    echo "   🔧 Troubleshooting:"
-    echo ""
-    echo "   1. Check logs:"
-    echo "      logread | grep mihomo | tail -20"
-    echo ""
-    echo "   2. Test config:"
-    echo "      /usr/bin/mihomo -d /etc/mihomo -t"
-    echo ""
-    echo "   3. Manual start:"
-    echo "      /etc/init.d/mihomo start"
-    echo ""
-    echo "   4. Check binary:"
-    echo "      /usr/bin/mihomo -v"
-    echo ""
-    echo "   5. Report issue:"
-    echo "      https://github.com/jahid421/DinoClash-openwrt/issues"
-    echo ""
-fi
-
+echo "   🌐 LuCI Panel: http://$LAN_IP"
+echo "   📊 Dashboard:  http://$LAN_IP:9595/ui"
+echo "   🔑 Secret:     flclash123"
+echo ""
+echo "   ✨ New Features:"
+echo "      🌗 Dark/Light Theme"
+echo "      ⚡ Auto Proxy Testing"
+echo "      📊 Data Usage Tracker"
+echo "      🔔 Notifications"
+echo "      📱 Mobile Responsive"
+echo ""
+echo "   📄 Upload YAML from LuCI panel"
+echo "   ⚠️  Turn OFF manual proxy on devices"
+echo ""
 echo "═══════════════════════════════════════"
 echo "🦕 DinoClash by Jahid Hasan Shuvo"
 echo "   https://github.com/jahid421/DinoClash-openwrt"
