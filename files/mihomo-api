@@ -3,8 +3,11 @@ echo "Content-Type: application/json"
 echo ""
 
 ACTION=$(echo "$QUERY_STRING" | sed -n 's/.*action=\([a-z_]*\).*/\1/p')
+MAC=$(echo "$QUERY_STRING" | sed -n 's/.*mac=\([^&]*\).*/\1/p')
+IP=$(echo "$QUERY_STRING" | sed -n 's/.*ip=\([^&]*\).*/\1/p')
 TRANSPARENT_FILE="/etc/mihomo/transparent"
 ENABLED_FILE="/etc/mihomo/enabled"
+BYPASS_FILE="/etc/mihomo/bypass_macs"
 
 case "$ACTION" in
   status)
@@ -12,59 +15,122 @@ case "$ACTION" in
     [ -f "$ENABLED_FILE" ] && ENABLED=$(cat $ENABLED_FILE)
     TP="0"
     [ -f "$TRANSPARENT_FILE" ] && TP=$(cat $TRANSPARENT_FILE)
-    
+
     if pgrep -f "/usr/bin/mihomo" >/dev/null 2>&1; then
       PID=$(pgrep -f "/usr/bin/mihomo" | head -n 1)
-      MEM=$(awk '/VmRSS/{print $2}' /proc/$PID/status 2>/dev/null)
-      [ -z "$MEM" ] && MEM=0
+      MEM=0
+      [ -f "/proc/$PID/status" ] && MEM=$(awk '/VmRSS/{print $2}' /proc/$PID/status 2>/dev/null || echo 0)
       echo "{\"running\":true,\"pid\":$PID,\"memory\":\"${MEM} kB\",\"transparent\":$TP,\"enabled\":$ENABLED}"
     else
       echo "{\"running\":false,\"transparent\":$TP,\"enabled\":$ENABLED}"
     fi
     ;;
+
   start)
-    # User wants to start - save preference
     mkdir -p /etc/mihomo
     echo "1" > $ENABLED_FILE
     /etc/init.d/mihomo enable >/dev/null 2>&1
     /etc/init.d/mihomo start >/dev/null 2>&1
     echo "{\"ok\":true,\"enabled\":1}"
     ;;
+
   stop)
-    # User wants to stop - save preference
     mkdir -p /etc/mihomo
     echo "0" > $ENABLED_FILE
     /etc/init.d/mihomo stop >/dev/null 2>&1
     echo "{\"ok\":true,\"enabled\":0}"
     ;;
+
   restart)
-    # Restart doesn't change enabled state
     mkdir -p /etc/mihomo
     echo "1" > $ENABLED_FILE
     /etc/init.d/mihomo enable >/dev/null 2>&1
     /etc/init.d/mihomo restart >/dev/null 2>&1
     echo "{\"ok\":true,\"enabled\":1}"
     ;;
+
   enable_tp)
     mkdir -p /etc/mihomo
     echo "1" > $TRANSPARENT_FILE
     /etc/init.d/mihomo restart >/dev/null 2>&1
     echo "{\"ok\":true,\"transparent\":1}"
     ;;
+
   disable_tp)
     mkdir -p /etc/mihomo
     echo "0" > $TRANSPARENT_FILE
     /etc/init.d/mihomo restart >/dev/null 2>&1
     echo "{\"ok\":true,\"transparent\":0}"
     ;;
-  update_geo)
-    cd /etc/mihomo
-    curl -sL -o geoip.dat "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip-lite.dat" 2>/dev/null
-    curl -sL -o geosite.dat "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat" 2>/dev/null
-    curl -sL -o Country.mmdb "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/country-lite.mmdb" 2>/dev/null
-    echo "{\"ok\":true}"
+
+  # ── BYPASS LIST ──────────────────────────────
+  bypass_list)
+    mkdir -p /etc/mihomo
+    # Get connected LAN clients from ARP table
+    CLIENTS=$(cat /proc/net/arp 2>/dev/null | awk 'NR>1 && $3=="0x2" {print $1,$4}')
+    # Get saved bypass MACs
+    SAVED=""
+    [ -f "$BYPASS_FILE" ] && SAVED=$(cat $BYPASS_FILE)
+
+    JSON="["
+    FIRST=1
+    echo "$CLIENTS" | while read -r LINE; do
+      CIP=$(echo "$LINE" | awk '{print $1}')
+      CMAC=$(echo "$LINE" | awk '{print $2}')
+      [ -z "$CMAC" ] || [ "$CMAC" = "00:00:00:00:00:00" ] && continue
+      # Get hostname
+      HOST=$(cat /tmp/dhcp.leases 2>/dev/null | awk -v m="$CMAC" 'tolower($2)==tolower(m){print $4}')
+      [ -z "$HOST" ] || [ "$HOST" = "*" ] && HOST="Unknown"
+      # Check if bypassed
+      BYPASSED="false"
+      echo "$SAVED" | grep -qi "$CMAC" && BYPASSED="true"
+      [ "$FIRST" = "1" ] && FIRST=0 || JSON="$JSON,"
+      JSON="$JSON{\"ip\":\"$CIP\",\"mac\":\"$CMAC\",\"host\":\"$HOST\",\"bypass\":$BYPASSED}"
+    done
+    echo "$JSON]"
     ;;
+
+  bypass_add)
+    [ -z "$MAC" ] && echo '{"ok":false,"error":"no_mac"}' && exit 0
+    mkdir -p /etc/mihomo
+    # Save to file
+    grep -qi "$MAC" $BYPASS_FILE 2>/dev/null || echo "$MAC" >> $BYPASS_FILE
+    # Add to nft immediately
+    nft add element inet mihomo bypass_mac { $MAC } 2>/dev/null || true
+    # Also add IP if provided
+    if [ -n "$IP" ]; then
+      nft add element inet mihomo bypass_ip { $IP } 2>/dev/null || true
+    fi
+    logger -t dinoclash "Bypass added: MAC=$MAC IP=$IP"
+    echo "{\"ok\":true,\"mac\":\"$MAC\"}"
+    ;;
+
+  bypass_remove)
+    [ -z "$MAC" ] && echo '{"ok":false,"error":"no_mac"}' && exit 0
+    # Remove from file
+    [ -f "$BYPASS_FILE" ] && sed -i "/$MAC/Id" $BYPASS_FILE
+    # Remove from nft
+    nft delete element inet mihomo bypass_mac { $MAC } 2>/dev/null || true
+    # Remove IP if provided
+    if [ -n "$IP" ]; then
+      nft delete element inet mihomo bypass_ip { $IP } 2>/dev/null || true
+    fi
+    logger -t dinoclash "Bypass removed: MAC=$MAC"
+    echo "{\"ok\":true,\"mac\":\"$MAC\"}"
+    ;;
+
+  update_geo)
+    (
+      cd /etc/mihomo
+      curl -sL -o geoip.dat "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip-lite.dat" &
+      curl -sL -o geosite.dat "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat" &
+      curl -sL -o Country.mmdb "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/country-lite.mmdb" &
+      wait
+    ) &
+    echo "{\"ok\":true,\"message\":\"updating in background\"}"
+    ;;
+
   *)
-    echo "{\"ok\":false}"
+    echo "{\"ok\":false,\"error\":\"unknown_action\"}"
     ;;
 esac
