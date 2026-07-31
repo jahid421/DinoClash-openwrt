@@ -48,8 +48,6 @@ td{padding:6px 8px;border-bottom:1px solid #f1f5f9;font-size:12px}
 .fb.ac{border-color:#6366f1;background:#eef2ff;color:#6366f1}
 .pg{display:none}.pg.show{display:block}
 .warn{background:#fef3c7;border:1px solid #fbbf24;color:#92400e;padding:10px;border-radius:8px;font-size:12px;margin-top:10px}
-.bypass-badge-on{background:#dcfce7;color:#166534;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700}
-.bypass-badge-off{background:#f1f5f9;color:#64748b;padding:2px 8px;border-radius:4px;font-size:11px}
 .credit-card{background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%);color:#fff;border-radius:12px;padding:24px;margin-top:30px;text-align:center;box-shadow:0 4px 15px rgba(99,102,241,0.3)}
 .credit-title{font-size:14px;opacity:.9;margin-bottom:6px;font-weight:500}
 .credit-name{font-size:22px;font-weight:800;margin-bottom:16px;letter-spacing:.5px}
@@ -90,18 +88,6 @@ td{padding:6px 8px;border-bottom:1px solid #f1f5f9;font-size:12px}
 </div>
 <div class="warn">⚠️ If internet breaks after enabling, click again to disable.</div>
 </div>
-
-<div class="card">
-<div class="title">🖥️ Device Bypass (UltraViewer / AnyDesk / Remote Desktop)</div>
-<div class="sm" style="margin-bottom:12px">
-Select devices to bypass proxy — IP change হলেও কাজ করবে (MAC based)। Remote desktop apps যেমন UltraViewer, AnyDesk, TeamViewer ব্যবহার করলে ওই PC bypass করুন।
-</div>
-<div id="bypasslist">Loading devices...</div>
-<div class="btns" style="margin-top:12px">
-<button class="btn b4" onclick="bload()">🔄 Refresh Devices</button>
-</div>
-</div>
-
 <div class="card">
 <div class="title">Mode</div>
 <div class="mode">
@@ -231,7 +217,7 @@ var A='http://'+location.hostname+':9595',S='flclash123',H={'Authorization':'Bea
 var yc='',ua=[],da=[];
 function fb(b){if(!b||b===0)return'0 B';var k=1024,s=['B','KB','MB','GB'];var i=Math.floor(Math.log(b)/Math.log(k));return parseFloat((b/Math.pow(k,i)).toFixed(1))+' '+s[i]}
 function af(p,o){o=o||{};o.headers=H;return fetch(A+p,o).then(function(r){return r.json()}).catch(function(){return null})}
-function sp(n,b){document.querySelectorAll('.pg').forEach(function(p){p.classList.remove('show')});document.getElementById('pg-'+n).classList.add('show');document.querySelectorAll('.tabs button').forEach(function(x){x.classList.remove('ac')});b.classList.add('ac');if(n==='proxy')pl();if(n==='config')cl();if(n==='conn')cnl();if(n==='overview')bload()}
+function sp(n,b){document.querySelectorAll('.pg').forEach(function(p){p.classList.remove('show')});document.getElementById('pg-'+n).classList.add('show');document.querySelectorAll('.tabs button').forEach(function(x){x.classList.remove('ac')});b.classList.add('ac');if(n==='proxy')pl();if(n==='config')cl();if(n==='conn')cnl()}
 function pf(el){if(!el.files.length)return;document.getElementById('fname').innerText='File: '+el.files[0].name;var r=new FileReader();r.onload=function(e){yc=e.target.result||'';document.getElementById('ubtn').disabled=yc.length<5};r.readAsText(el.files[0])}
 function dup(){if(!yc){alert('Select file');return}fetch('/cgi-bin/mihomo-cfg',{method:'POST',body:yc}).then(function(r){return r.text()}).then(function(t){alert(t.indexOf('SAVED')>=0?'Uploaded & Applied!':'Error: '+t);setTimeout(function(){chk();gc()},3000)}).catch(function(){alert('Failed')})}
 function dsub(){var u=document.getElementById('suburl').value;if(!u){alert('Enter URL');return}document.getElementById('submsg').innerText='Downloading...';fetch('/cgi-bin/mihomo-sub?url='+encodeURIComponent(u)).then(function(r){return r.text()}).then(function(t){document.getElementById('submsg').innerText=(t||'').trim()==='OK'?'Applied!':'Failed: '+t;setTimeout(function(){chk();gc()},3000)}).catch(function(){document.getElementById('submsg').innerText='Error'})}
@@ -261,60 +247,9 @@ var ll=[],lfi='all';
 function lf(f,b){lfi=f;document.querySelectorAll('.fb').forEach(function(x){x.classList.remove('ac')});b.classList.add('ac');lr()}
 function lr(){var b=document.getElementById('llb');var fl=lfi==='all'?ll:ll.filter(function(l){return l.type.toLowerCase()===lfi});var h='';fl.forEach(function(l){h+='<div class="l'+l.type.charAt(0).toLowerCase()+'">['+l.type+'] '+l.payload+'</div>'});b.innerHTML=h||'<div style="color:#64748b;text-align:center;padding:40px">Waiting for logs...</div>';b.scrollTop=b.scrollHeight}
 function lw(){try{var ws=new WebSocket('ws://'+location.hostname+':9595/logs?token='+S+'&level=debug');ws.onmessage=function(e){var d=JSON.parse(e.data);ll.push(d);if(ll.length>500)ll.shift();lr()};ws.onclose=function(){setTimeout(lw,3000)}}catch(e){setTimeout(lw,5000)}}
-
-// ── DEVICE BYPASS ──────────────────────────────
-function bload(){
-  document.getElementById('bypasslist').innerHTML='Loading devices...';
-  fetch('/cgi-bin/mihomo-api?action=bypass_list')
-    .then(function(r){return r.text()})
-    .then(function(t){
-      var d;
-      try{d=JSON.parse(t)}catch(e){d=[]};
-      if(!d||!d.length||d.length===0){
-        document.getElementById('bypasslist').innerHTML='<div class="sm" style="color:#94a3b8;text-align:center;padding:20px">No devices found on LAN. Connect devices first.</div>';
-        return;
-      }
-      var h='<table><thead><tr><th>Device</th><th>IP</th><th>MAC</th><th>Status</th><th>Bypass</th></tr></thead><tbody>';
-      for(var i=0;i<d.length;i++){
-        var c=d[i];
-        var badge=c.bypass?'<span class="bypass-badge-on">BYPASS</span>':'<span class="bypass-badge-off">PROXY</span>';
-        var checked=c.bypass?'checked':'';
-        h+='<tr><td><b>'+c.host+'</b></td><td>'+c.ip+'</td><td style="font-family:monospace;font-size:11px">'+c.mac+'</td><td>'+badge+'</td><td><input type="checkbox" '+checked+' onchange="btoggle(\''+c.mac+'\',\''+c.ip+'\',this)" style="width:18px;height:18px;cursor:pointer"></td></tr>';
-      }
-      h+='</tbody></table>';
-      document.getElementById('bypasslist').innerHTML=h;
-    })
-    .catch(function(){
-      document.getElementById('bypasslist').innerHTML='<div style="color:#ef4444;text-align:center;padding:20px">Failed to load devices. Is DinoClash running?</div>';
-    });
-}
-
-function btoggle(mac,ip,el){
-  var action=el.checked?'bypass_add':'bypass_remove';
-  el.disabled=true;
-  fetch('/cgi-bin/mihomo-api?action='+action+'&mac='+encodeURIComponent(mac)+'&ip='+encodeURIComponent(ip))
-    .then(function(r){return r.json()})
-    .then(function(d){
-      el.disabled=false;
-      if(d&&d.ok){
-        setTimeout(bload,800);
-      }else{
-        alert('Failed: '+(d.error||'unknown'));
-        el.checked=!el.checked;
-      }
-    })
-    .catch(function(){
-      el.disabled=false;
-      alert('Request failed');
-      el.checked=!el.checked;
-    });
-}
-
 chk();gc();gn();sw();lw();
-setTimeout(bload,2000);
 setInterval(chk,10000);setInterval(gc,10000);setInterval(gn,5000);
 setInterval(function(){if(document.getElementById('pg-conn').classList.contains('show'))cnl()},3000);
 setInterval(function(){if(document.getElementById('pg-proxy').classList.contains('show'))pl()},15000);
-setInterval(function(){if(document.getElementById('pg-overview').classList.contains('show'))bload()},30000);
 </script>
 <%+footer%>
