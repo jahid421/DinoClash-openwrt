@@ -33,6 +33,7 @@ body{margin:0;padding:0;transition:background .3s,color .3s}
   --warn-border:#fbbf24;
   --warn-text:#92400e;
   --scrollbar:#cbd5e1;
+  --progress-bg:#e2e8f0;
 }
 
 [data-theme="dark"]{
@@ -65,6 +66,7 @@ body{margin:0;padding:0;transition:background .3s,color .3s}
   --warn-border:#f59e0b;
   --warn-text:#fcd34d;
   --scrollbar:#475569;
+  --progress-bg:#334155;
 }
 
 body{background:var(--bg);color:var(--text)}
@@ -190,6 +192,23 @@ input:checked+.at-slider:before{transform:translateX(22px)}
 .at-info{font-size:11px;color:var(--text-muted);margin-top:8px;font-style:italic}
 .at-last{font-size:11px;color:var(--text-muted);margin-top:4px}
 
+/* Data Usage Card */
+.du-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:14px}
+.du-box{background:var(--card-bg);border:1px solid var(--card-border);border-radius:12px;padding:14px;position:relative;overflow:hidden;transition:.2s}
+.du-box:hover{transform:translateY(-2px);box-shadow:var(--shadow-hover)}
+.du-box.today{border-left:4px solid #6366f1}
+.du-box.month{border-left:4px solid #22c55e}
+.du-box.session{border-left:4px solid #f59e0b}
+.du-label{font-size:10px;color:var(--text-muted);text-transform:uppercase;font-weight:700;letter-spacing:.5px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.du-total{font-size:18px;font-weight:800;color:var(--text);margin-bottom:8px}
+.du-split{display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);gap:8px}
+.du-split span{display:flex;align-items:center;gap:4px}
+.du-up{color:#6366f1;font-weight:600}
+.du-dn{color:#22c55e;font-weight:600}
+.du-since{font-size:10px;color:var(--text-muted);margin-top:6px;font-style:italic}
+.du-progress{height:4px;background:var(--progress-bg);border-radius:2px;overflow:hidden;margin-top:10px}
+.du-progress-bar{height:100%;background:linear-gradient(90deg,#6366f1,#8b5cf6);transition:width .5s}
+
 ::-webkit-scrollbar{width:8px;height:8px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--scrollbar);border-radius:4px}
@@ -234,6 +253,8 @@ input:checked+.at-slider:before{transform:translateX(22px)}
   th,td{padding:8px 6px;font-size:11px}
   .theme-toggle{width:40px;height:40px;top:8px;right:8px;font-size:18px}
   .at-controls{grid-template-columns:1fr}
+  .du-grid{grid-template-columns:1fr;gap:10px}
+  .du-total{font-size:16px}
 }
 
 @media(min-width:641px) and (max-width:1024px){
@@ -291,6 +312,46 @@ input:checked+.at-slider:before{transform:translateX(22px)}
 <button class="btn b3" id="tpbtn" onclick="toggleTP()">Loading...</button>
 </div>
 <div class="warn">⚠️ If internet breaks after enabling, click again to disable.</div>
+</div>
+
+<div class="card">
+<div class="title">📊 Data Usage Tracker</div>
+<div class="du-grid">
+
+<div class="du-box today">
+<div class="du-label">📅 Today <span style="font-size:9px;font-weight:600" id="duTodayDate"></span></div>
+<div class="du-total" id="duTodayTotal">0 B</div>
+<div class="du-split">
+<span class="du-up">↑ <span id="duTodayUp">0 B</span></span>
+<span class="du-dn">↓ <span id="duTodayDn">0 B</span></span>
+</div>
+</div>
+
+<div class="du-box month">
+<div class="du-label">📆 This Month <span style="font-size:9px;font-weight:600" id="duMonthName"></span></div>
+<div class="du-total" id="duMonthTotal">0 B</div>
+<div class="du-split">
+<span class="du-up">↑ <span id="duMonthUp">0 B</span></span>
+<span class="du-dn">↓ <span id="duMonthDn">0 B</span></span>
+</div>
+</div>
+
+<div class="du-box session">
+<div class="du-label">⏱️ Session</div>
+<div class="du-total" id="duSessionTotal">0 B</div>
+<div class="du-split">
+<span class="du-up">↑ <span id="duSessionUp">0 B</span></span>
+<span class="du-dn">↓ <span id="duSessionDn">0 B</span></span>
+</div>
+<div class="du-since" id="duSessionSince">Started: -</div>
+</div>
+
+</div>
+<div class="btns">
+<button class="btn b3" onclick="resetDU('session')">Reset Session</button>
+<button class="btn b3" onclick="resetDU('today')">Reset Today</button>
+<button class="btn b2" onclick="resetDU('all')">Reset All</button>
+</div>
 </div>
 
 <div class="card">
@@ -488,7 +549,7 @@ loadTheme();
 // ═══════════════════════════════════════════════
 var A='http://'+location.hostname+':9595',S='flclash123',H={'Authorization':'Bearer '+S,'Content-Type':'application/json'};
 var yc='',ua=[],da=[];
-function fb(b){if(!b||b===0)return'0 B';var k=1024,s=['B','KB','MB','GB'];var i=Math.floor(Math.log(b)/Math.log(k));return parseFloat((b/Math.pow(k,i)).toFixed(1))+' '+s[i]}
+function fb(b){if(!b||b===0)return'0 B';var k=1024,s=['B','KB','MB','GB','TB'];var i=Math.floor(Math.log(b)/Math.log(k));return parseFloat((b/Math.pow(k,i)).toFixed(1))+' '+s[i]}
 function af(p,o){o=o||{};o.headers=H;return fetch(A+p,o).then(function(r){return r.json()}).catch(function(){return null})}
 function sp(n,b){document.querySelectorAll('.pg').forEach(function(p){p.classList.remove('show')});document.getElementById('pg-'+n).classList.add('show');document.querySelectorAll('.tabs button').forEach(function(x){x.classList.remove('ac')});b.classList.add('ac');if(n==='proxy')pl();if(n==='config')cl();if(n==='conn')cnl();window.scrollTo({top:0,behavior:'smooth'})}
 function pf(el){if(!el.files.length)return;document.getElementById('fname').innerText='File: '+el.files[0].name;var r=new FileReader();r.onload=function(e){yc=e.target.result||'';document.getElementById('ubtn').disabled=yc.length<5};r.readAsText(el.files[0])}
@@ -503,7 +564,142 @@ function sm(m){af('/configs',{method:'PATCH',body:JSON.stringify({mode:m})}).the
 function svc(a){fetch('/cgi-bin/mihomo-api?action='+a);setTimeout(function(){chk();gc()},3000)}
 function ug(){fetch('/cgi-bin/mihomo-api?action=update_geo').then(function(){alert('Updated!')})}
 function fd(){af('/cache/fakeip/flush',{method:'PATCH'}).then(function(){alert('Flushed!')})}
-function sw(){try{var ws=new WebSocket('ws://'+location.hostname+':9595/traffic?token='+S);ws.onmessage=function(e){var d=JSON.parse(e.data);document.getElementById('up').innerText=fb(d.up)+'/s';document.getElementById('dn').innerText=fb(d.down)+'/s';ua.push(d.up);da.push(d.down);if(ua.length>60)ua.shift();if(da.length>60)da.shift();dr()};ws.onclose=function(){setTimeout(sw,3000)}}catch(x){setTimeout(sw,5000)}}
+
+// ═══════════════════════════════════════════════
+// DATA USAGE TRACKING
+// ═══════════════════════════════════════════════
+var duData={
+  session:{up:0,dn:0,startTime:Date.now()},
+  today:{up:0,dn:0,date:new Date().toDateString()},
+  month:{up:0,dn:0,month:new Date().getMonth()+'-'+new Date().getFullYear()}
+};
+
+function loadDU(){
+  try{
+    var saved=localStorage.getItem('dinoclash-du');
+    if(saved){
+      var d=JSON.parse(saved);
+      // Check if today changed
+      var today=new Date().toDateString();
+      if(d.today && d.today.date===today){
+        duData.today=d.today;
+      }else{
+        duData.today={up:0,dn:0,date:today};
+      }
+      // Check if month changed
+      var thisMonth=new Date().getMonth()+'-'+new Date().getFullYear();
+      if(d.month && d.month.month===thisMonth){
+        duData.month=d.month;
+      }else{
+        duData.month={up:0,dn:0,month:thisMonth};
+      }
+    }
+  }catch(e){}
+  updateDUDisplay();
+}
+
+function saveDU(){
+  try{
+    localStorage.setItem('dinoclash-du',JSON.stringify({
+      today:duData.today,
+      month:duData.month
+    }));
+  }catch(e){}
+}
+
+function addDU(up,dn){
+  if(up>0){
+    duData.session.up+=up;
+    duData.today.up+=up;
+    duData.month.up+=up;
+  }
+  if(dn>0){
+    duData.session.dn+=dn;
+    duData.today.dn+=dn;
+    duData.month.dn+=dn;
+  }
+}
+
+function updateDUDisplay(){
+  // Session
+  document.getElementById('duSessionUp').innerText=fb(duData.session.up);
+  document.getElementById('duSessionDn').innerText=fb(duData.session.dn);
+  document.getElementById('duSessionTotal').innerText=fb(duData.session.up+duData.session.dn);
+  var sinceDate=new Date(duData.session.startTime);
+  document.getElementById('duSessionSince').innerText='Started: '+sinceDate.toLocaleTimeString();
+  
+  // Today
+  document.getElementById('duTodayUp').innerText=fb(duData.today.up);
+  document.getElementById('duTodayDn').innerText=fb(duData.today.dn);
+  document.getElementById('duTodayTotal').innerText=fb(duData.today.up+duData.today.dn);
+  document.getElementById('duTodayDate').innerText=new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  
+  // Month
+  document.getElementById('duMonthUp').innerText=fb(duData.month.up);
+  document.getElementById('duMonthDn').innerText=fb(duData.month.dn);
+  document.getElementById('duMonthTotal').innerText=fb(duData.month.up+duData.month.dn);
+  document.getElementById('duMonthName').innerText=new Date().toLocaleDateString('en-US',{month:'long'});
+}
+
+function resetDU(type){
+  if(type==='all'){
+    if(!confirm('Reset ALL data usage? This cannot be undone.'))return;
+    duData.session={up:0,dn:0,startTime:Date.now()};
+    duData.today={up:0,dn:0,date:new Date().toDateString()};
+    duData.month={up:0,dn:0,month:new Date().getMonth()+'-'+new Date().getFullYear()};
+  }else if(type==='session'){
+    duData.session={up:0,dn:0,startTime:Date.now()};
+  }else if(type==='today'){
+    if(!confirm('Reset today\'s usage?'))return;
+    duData.today={up:0,dn:0,date:new Date().toDateString()};
+  }
+  saveDU();
+  updateDUDisplay();
+}
+
+// Check date change every minute (for daily rollover)
+setInterval(function(){
+  var today=new Date().toDateString();
+  if(duData.today.date!==today){
+    duData.today={up:0,dn:0,date:today};
+    saveDU();
+  }
+  var thisMonth=new Date().getMonth()+'-'+new Date().getFullYear();
+  if(duData.month.month!==thisMonth){
+    duData.month={up:0,dn:0,month:thisMonth};
+    saveDU();
+  }
+},60000);
+
+// Save every 30 seconds
+setInterval(saveDU,30000);
+
+// Save on page unload
+window.addEventListener('beforeunload',saveDU);
+
+// ═══════════════════════════════════════════════
+// WEBSOCKET TRAFFIC (updated with DU tracking)
+// ═══════════════════════════════════════════════
+function sw(){
+  try{
+    var ws=new WebSocket('ws://'+location.hostname+':9595/traffic?token='+S);
+    ws.onmessage=function(e){
+      var d=JSON.parse(e.data);
+      document.getElementById('up').innerText=fb(d.up)+'/s';
+      document.getElementById('dn').innerText=fb(d.down)+'/s';
+      ua.push(d.up);
+      da.push(d.down);
+      if(ua.length>60)ua.shift();
+      if(da.length>60)da.shift();
+      dr();
+      // Track data usage (traffic per second)
+      addDU(d.up,d.down);
+      updateDUDisplay();
+    };
+    ws.onclose=function(){setTimeout(sw,3000)};
+  }catch(x){setTimeout(sw,5000)}
+}
+
 function dr(){var c=document.getElementById('cv');if(!c)return;var x=c.getContext('2d');var dpr=window.devicePixelRatio||1;if(c.width!==c.offsetWidth*dpr){c.width=c.offsetWidth*dpr;c.height=c.offsetHeight*dpr;x.scale(dpr,dpr)}var w=c.offsetWidth,h=c.offsetHeight;x.clearRect(0,0,w,h);var mx=Math.max(Math.max.apply(null,ua.concat([1])),Math.max.apply(null,da.concat([1])));function ln(a,col){if(a.length<2)return;x.beginPath();x.strokeStyle=col;x.lineWidth=2;for(var i=0;i<a.length;i++){var px=(i/59)*w,py=h-(a[i]/mx)*(h-8)-4;if(i===0)x.moveTo(px,py);else x.lineTo(px,py)}x.stroke()}ln(ua,'#6366f1');ln(da,'#22c55e')}
 window.addEventListener('resize',function(){setTimeout(dr,100)});
 function pfd(d){if(!d||d===0)return'<span class="t">-</span>';if(d<200)return'<span class="f">'+d+'ms</span>';if(d<500)return'<span class="m">'+d+'ms</span>';return'<span class="s">'+d+'ms</span>'}
@@ -545,11 +741,7 @@ function saveATSettings(){
 
 function toggleAT(){
   saveATSettings();
-  if(document.getElementById('atEnable').checked){
-    startAT();
-  }else{
-    stopAT();
-  }
+  if(document.getElementById('atEnable').checked){startAT()}else{stopAT()}
 }
 
 function startAT(){
@@ -563,10 +755,7 @@ function startAT(){
 function stopAT(){
   atRunning=false;
   updateATStatus('OFF','at-inactive');
-  if(atTimer){
-    clearInterval(atTimer);
-    atTimer=null;
-  }
+  if(atTimer){clearInterval(atTimer);atTimer=null}
 }
 
 function restartAT(){
@@ -577,10 +766,7 @@ function restartAT(){
 
 function updateATStatus(text,className){
   var el=document.getElementById('atStatus');
-  if(el){
-    el.innerText=text;
-    el.className='at-status '+className;
-  }
+  if(el){el.innerText=text;el.className='at-status '+className}
 }
 
 function runManualTest(){
@@ -592,14 +778,9 @@ function runAutoTest(){
   fetch(A+'/proxies',{headers:H})
     .then(function(r){return r.json()})
     .then(function(d){
-      if(!d||!d.proxies){
-        updateATStatus('NO PROXY','at-inactive');
-        return;
-      }
-      
+      if(!d||!d.proxies){updateATStatus('NO PROXY','at-inactive');return}
       var testPromises=[];
       var proxyNames=[];
-      
       Object.keys(d.proxies).forEach(function(n){
         var t=d.proxies[n].type;
         if(['Selector','URLTest','Fallback','LoadBalance','Direct','Reject','Compatible'].indexOf(t)<0){
@@ -612,57 +793,31 @@ function runAutoTest(){
           );
         }
       });
-      
-      if(testPromises.length===0){
-        updateATStatus('NO PROXY','at-inactive');
-        return;
-      }
-      
+      if(testPromises.length===0){updateATStatus('NO PROXY','at-inactive');return}
       Promise.all(testPromises).then(function(results){
         var valid=results.filter(function(r){return r.delay>0});
         valid.sort(function(a,b){return a.delay-b.delay});
-        
         var now=new Date().toLocaleTimeString();
         document.getElementById('atLast').innerText='Last test: '+now+' ('+valid.length+'/'+results.length+' active)';
-        
-        if(atRunning){
-          updateATStatus('ON','at-active');
-        }else{
-          updateATStatus('DONE','at-active');
-          setTimeout(function(){
-            if(!atRunning)updateATStatus('OFF','at-inactive');
-          },3000);
-        }
-        
-        // Auto select fastest
+        if(atRunning){updateATStatus('ON','at-active')}else{updateATStatus('DONE','at-active');setTimeout(function(){if(!atRunning)updateATStatus('OFF','at-inactive')},3000)}
         if(document.getElementById('atAutoSelect').checked && valid.length>0){
           var fastest=valid[0].name;
-          // Find selector groups and update
           Object.keys(d.proxies).forEach(function(g){
             if(d.proxies[g].type==='Selector' && d.proxies[g].all && d.proxies[g].all.indexOf(fastest)>=0){
-              fetch(A+'/proxies/'+encodeURIComponent(g),{
-                method:'PUT',
-                headers:H,
-                body:JSON.stringify({name:fastest})
-              }).catch(function(){});
+              fetch(A+'/proxies/'+encodeURIComponent(g),{method:'PUT',headers:H,body:JSON.stringify({name:fastest})}).catch(function(){});
             }
           });
         }
-        
-        // Refresh proxy tab if visible
-        if(document.getElementById('pg-proxy').classList.contains('show')){
-          setTimeout(pl,500);
-        }
+        if(document.getElementById('pg-proxy').classList.contains('show')){setTimeout(pl,500)}
       });
     })
-    .catch(function(){
-      updateATStatus('ERROR','at-inactive');
-    });
+    .catch(function(){updateATStatus('ERROR','at-inactive')});
 }
 
 // Init
 chk();gc();gn();sw();lw();
 loadATSettings();
+loadDU();
 setInterval(chk,10000);setInterval(gc,10000);setInterval(gn,5000);
 setInterval(function(){if(document.getElementById('pg-conn').classList.contains('show'))cnl()},3000);
 setInterval(function(){if(document.getElementById('pg-proxy').classList.contains('show'))pl()},15000);
