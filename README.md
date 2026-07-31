@@ -350,27 +350,29 @@ Add your app's domain to config rules:
 ---
 
 ## 🗑️ Uninstall
+---
 
-/etc/init.d/mihomo stop 2>/dev/null
-/etc/init.d/mihomo disable 2>/dev/null
-nft delete table inet mihomo 2>/dev/null
-rm -f /usr/bin/mihomo
-rm -f /etc/init.d/mihomo
-rm -rf /etc/mihomo
-rm -f /www/cgi-bin/mihomo-*
-rm -f /usr/lib/lua/luci/controller/mihomo.lua
-rm -rf /usr/lib/lua/luci/view/mihomo
-rm -f /usr/share/luci/menu.d/luci-app-dinoclash.json
-uci -q delete firewall.mihomo_proxy
-uci -q delete dhcp.@dnsmasq[0].noresolv
-uci -q delete dhcp.@dnsmasq[0].server
-uci commit firewall dhcp
-/etc/init.d/firewall restart >/dev/null 2>&1
-/etc/init.d/dnsmasq restart >/dev/null 2>&1
-rm -rf /tmp/luci-*
-/etc/init.d/rpcd restart >/dev/null 2>&1
-/etc/init.d/uhttpd restart >/dev/null 2>&1
-echo "✅ DinoClash uninstalled successfully"
+    /etc/init.d/mihomo stop 2>/dev/null
+    /etc/init.d/mihomo disable 2>/dev/null
+    nft delete table inet mihomo 2>/dev/null
+    rm -f /usr/bin/mihomo
+    rm -f /etc/init.d/mihomo
+    rm -rf /etc/mihomo
+    rm -f /www/cgi-bin/mihomo-*
+    rm -f /usr/lib/lua/luci/controller/mihomo.lua
+    rm -rf /usr/lib/lua/luci/view/mihomo
+    rm -f /usr/share/luci/menu.d/luci-app-dinoclash.json
+    uci -q delete firewall.mihomo_proxy
+    uci -q delete dhcp.@dnsmasq[0].noresolv
+    uci -q delete dhcp.@dnsmasq[0].server
+    uci commit firewall dhcp
+    /etc/init.d/firewall restart >/dev/null 2>&1
+    /etc/init.d/dnsmasq restart >/dev/null 2>&1
+    rm -rf /tmp/luci-*
+    /etc/init.d/rpcd restart >/dev/null 2>&1
+    /etc/init.d/uhttpd restart >/dev/null 2>&1
+    echo "✅ DinoClash uninstalled successfully"
+
 
 ---
 
