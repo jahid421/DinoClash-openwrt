@@ -3,9 +3,6 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{margin:0;padding:0;transition:background .3s,color .3s}
 
-/* ═══════════════════════════════════════════════
-   LIGHT THEME (default)
-═══════════════════════════════════════════════ */
 :root{
   --bg:#f5f5f5;
   --card-bg:#fff;
@@ -38,9 +35,6 @@ body{margin:0;padding:0;transition:background .3s,color .3s}
   --scrollbar:#cbd5e1;
 }
 
-/* ═══════════════════════════════════════════════
-   DARK THEME
-═══════════════════════════════════════════════ */
 [data-theme="dark"]{
   --bg:#0f172a;
   --card-bg:#1e293b;
@@ -74,31 +68,25 @@ body{margin:0;padding:0;transition:background .3s,color .3s}
 }
 
 body{background:var(--bg);color:var(--text)}
-
 .mc{max-width:1200px;margin:0 auto;padding:12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:var(--text)}
 
-/* ── THEME TOGGLE ── */
 .theme-toggle{position:fixed;top:12px;right:12px;z-index:1000;width:44px;height:44px;border-radius:50%;border:none;background:var(--card-bg);color:var(--accent);cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,0.15);display:flex;align-items:center;justify-content:center;transition:all .3s;font-size:20px}
 .theme-toggle:hover{transform:scale(1.1) rotate(15deg)}
 .theme-toggle:active{transform:scale(0.95)}
 
-/* ── TABS ── */
 .tabs{display:flex;border:2px solid var(--accent);border-radius:10px;overflow-x:auto;margin-bottom:16px;background:var(--tab-bg);scrollbar-width:none;-ms-overflow-style:none}
 .tabs::-webkit-scrollbar{display:none}
 .tabs button{flex:1 1 auto;min-width:90px;padding:12px 8px;border:none;background:var(--tab-bg);color:var(--accent);font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap;transition:.2s}
 .tabs button.ac{background:var(--accent);color:#fff}
 .tabs button:active{transform:scale(0.97)}
 
-/* ── CARDS ── */
 .card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:var(--shadow);transition:background .3s,border-color .3s}
 .title{font-size:14px;font-weight:700;margin-bottom:14px;color:var(--text-heading);padding-bottom:10px;border-bottom:1px solid var(--divider);display:flex;align-items:center;gap:6px}
 
-/* ── STATUS DOT ── */
 .dot{width:12px;height:12px;border-radius:50%;display:inline-block;margin-right:8px;flex-shrink:0}
 .on{background:#22c55e;box-shadow:0 0 8px #22c55e}
 .off{background:#ef4444;box-shadow:0 0 8px #ef4444}
 
-/* ── BUTTONS ── */
 .btns{display:flex;gap:8px;flex-wrap:wrap}
 .btn{border:none;border-radius:10px;padding:11px 18px;font-size:13px;font-weight:600;cursor:pointer;transition:.15s;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:42px;white-space:nowrap}
 .btn:hover{transform:translateY(-1px);opacity:.9}
@@ -108,43 +96,36 @@ body{background:var(--bg);color:var(--text)}
 .b3{background:#f59e0b;color:#fff}
 .b4{background:var(--accent);color:#fff}
 
-/* ── STATS GRID ── */
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
 .stat{background:var(--card-bg);border:1px solid var(--card-border);border-radius:12px;padding:14px;transition:.2s}
 .stat:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:var(--shadow-hover)}
 .stat .l{font-size:10px;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px;letter-spacing:.5px;font-weight:600}
 .stat .v{font-size:20px;font-weight:700;color:var(--text)}
 
-/* ── UPLOAD BOX ── */
 .upbox{border:2px dashed var(--accent);border-radius:12px;padding:24px 16px;text-align:center;background:var(--upbox-bg);cursor:pointer;transition:.2s}
 .upbox:hover{background:var(--upbox-hover);border-color:var(--accent-hover)}
 .upbox:active{transform:scale(0.98)}
 input[type=file]{display:none}
 
-/* ── MODE SWITCH ── */
 .mode{display:flex;border:2px solid var(--accent);border-radius:10px;overflow:hidden}
 .mode button{flex:1;padding:11px 8px;border:none;background:var(--card-bg);color:var(--accent);font-weight:700;cursor:pointer;font-size:13px;min-height:44px;transition:.2s}
 .mode button.ac{background:var(--accent);color:#fff}
 .mode button:active{transform:scale(0.97)}
 
-/* ── INFO ROWS ── */
 .ir{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--divider);font-size:13px;gap:10px}
 .ir:last-child{border-bottom:none}
 .ir span:first-child{color:var(--text-muted);font-weight:500}
 .ir span:last-child{font-weight:600;color:var(--text);text-align:right;word-break:break-all}
 .sm{font-size:12px;color:var(--text-muted);line-height:1.5}
 
-/* ── CANVAS ── */
 canvas{width:100%;height:120px;display:block}
 
-/* ── INPUTS ── */
 .inp{width:100%;padding:12px;border:1px solid var(--input-border);border-radius:10px;font-size:13px;margin-bottom:10px;font-family:inherit;transition:.2s;background:var(--input-bg);color:var(--text)}
 .inp:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(99,102,241,0.1)}
 .inp::placeholder{color:var(--text-muted)}
 .ta{width:100%;height:350px;padding:12px;border:1px solid var(--input-border);border-radius:10px;font-family:'Consolas','Monaco',monospace;font-size:12px;background:var(--textarea-bg);color:var(--text);resize:vertical;transition:.2s}
 .ta:focus{outline:none;border-color:var(--accent)}
 
-/* ── PROXY GROUPS ── */
 .gp{background:var(--card-bg);border:1px solid var(--card-border);border-radius:12px;padding:16px;margin-bottom:12px;transition:background .3s,border-color .3s}
 .gn{font-size:15px;font-weight:700;margin-bottom:4px;color:var(--text)}
 .gi{font-size:12px;color:var(--text-muted);margin-bottom:12px}
@@ -160,51 +141,60 @@ canvas{width:100%;height:120px;display:block}
 .s{color:#ef4444}
 .t{color:var(--text-muted)}
 
-/* ── TABLES ── */
 .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:8px}
 table{width:100%;border-collapse:collapse;min-width:500px}
 th{background:var(--table-header);padding:10px 8px;text-align:left;font-size:11px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px}
 td{padding:10px 8px;border-bottom:1px solid var(--divider);font-size:12px;color:var(--text)}
 .cb{background:#fee2e2;color:#ef4444;border:none;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;transition:.15s}
 .cb:hover{background:#fecaca}
-.cb:active{transform:scale(0.95)}
 [data-theme="dark"] .cb{background:#7f1d1d;color:#fca5a5}
 [data-theme="dark"] .cb:hover{background:#991b1b}
 
-/* ── LOG BOX ── */
 .lb{background:var(--log-bg);color:var(--log-text);border-radius:12px;padding:14px;height:400px;overflow-y:auto;font-family:'Consolas','Monaco',monospace;font-size:11px;line-height:1.7;-webkit-overflow-scrolling:touch}
 .li{color:#38bdf8}
 .lw{color:#fbbf24}
 .le{color:#f87171}
 
-/* ── FILTER BUTTONS ── */
 .fb{padding:7px 12px;border:2px solid var(--card-border);border-radius:8px;background:var(--card-bg);cursor:pointer;font-size:12px;font-weight:600;transition:.15s;color:var(--text-muted)}
 .fb:hover{border-color:var(--accent)}
 .fb.ac{border-color:var(--accent);background:var(--accent-light);color:var(--accent)}
 
-/* ── PAGE ── */
 .pg{display:none}
 .pg.show{display:block}
 
-/* ── WARNING ── */
 .warn{background:var(--warn-bg);border:1px solid var(--warn-border);color:var(--warn-text);padding:12px;border-radius:10px;font-size:12px;margin-top:12px;line-height:1.5}
 
-/* ── HEADER SECTION ── */
 .hdr{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
 .hdr-info{flex:1;min-width:200px}
 .hdr-title{font-size:17px;font-weight:700;display:flex;align-items:center}
 
-/* ── SEARCH INPUT INLINE ── */
 .search-inline{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .search-inline .inp{width:200px;margin:0}
 
-/* ── SCROLLBAR ── */
+/* Auto Test Card */
+.at-status{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;text-transform:uppercase}
+.at-active{background:var(--success-bg);color:var(--success-text)}
+.at-inactive{background:var(--error-bg);color:var(--error-text)}
+.at-testing{background:var(--warn-bg);color:var(--warn-text)}
+.at-controls{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.at-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--divider);font-size:13px}
+.at-row:last-child{border-bottom:none}
+.at-select{padding:8px 12px;border:1px solid var(--input-border);border-radius:8px;background:var(--input-bg);color:var(--text);font-size:13px;cursor:pointer;font-family:inherit}
+.at-select:focus{outline:none;border-color:var(--accent)}
+.at-toggle{position:relative;display:inline-block;width:50px;height:28px}
+.at-toggle input{opacity:0;width:0;height:0}
+.at-slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#cbd5e1;transition:.3s;border-radius:28px}
+.at-slider:before{position:absolute;content:"";height:22px;width:22px;left:3px;bottom:3px;background:white;transition:.3s;border-radius:50%}
+input:checked+.at-slider{background:#22c55e}
+input:checked+.at-slider:before{transform:translateX(22px)}
+.at-info{font-size:11px;color:var(--text-muted);margin-top:8px;font-style:italic}
+.at-last{font-size:11px;color:var(--text-muted);margin-top:4px}
+
 ::-webkit-scrollbar{width:8px;height:8px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--scrollbar);border-radius:4px}
 ::-webkit-scrollbar-thumb:hover{background:var(--text-muted)}
 
-/* ── CREDIT CARD ── */
 .credit-card{background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%);color:#fff;border-radius:14px;padding:24px 20px;margin-top:24px;text-align:center;box-shadow:0 4px 20px rgba(99,102,241,0.25)}
 .credit-title{font-size:13px;opacity:.9;margin-bottom:6px;font-weight:500}
 .credit-name{font-size:22px;font-weight:800;margin-bottom:18px;letter-spacing:.5px}
@@ -214,9 +204,6 @@ td{padding:10px 8px;border-bottom:1px solid var(--divider);font-size:12px;color:
 .social-btn:active{transform:scale(0.97)}
 .social-btn svg{width:18px;height:18px;flex-shrink:0}
 
-/* ═══════════════════════════════════════════════
-   RESPONSIVE — MOBILE (< 640px)
-═══════════════════════════════════════════════ */
 @media(max-width:640px){
   .mc{padding:10px}
   .card{padding:14px;border-radius:12px}
@@ -246,19 +233,14 @@ td{padding:10px 8px;border-bottom:1px solid var(--divider);font-size:12px;color:
   .upbox{padding:20px 12px}
   th,td{padding:8px 6px;font-size:11px}
   .theme-toggle{width:40px;height:40px;top:8px;right:8px;font-size:18px}
+  .at-controls{grid-template-columns:1fr}
 }
 
-/* ═══════════════════════════════════════════════
-   RESPONSIVE — TABLET (641px - 1024px)
-═══════════════════════════════════════════════ */
 @media(min-width:641px) and (max-width:1024px){
   .grid{grid-template-columns:repeat(2,1fr)}
   .nd{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
 }
 
-/* ═══════════════════════════════════════════════
-   RESPONSIVE — SMALL MOBILE (< 380px)
-═══════════════════════════════════════════════ */
 @media(max-width:380px){
   .grid{grid-template-columns:1fr 1fr}
   .stat .v{font-size:15px}
@@ -267,9 +249,6 @@ td{padding:10px 8px;border-bottom:1px solid var(--divider);font-size:12px;color:
   .nd{grid-template-columns:1fr 1fr}
 }
 
-/* ═══════════════════════════════════════════════
-   RESPONSIVE — LARGE SCREENS (> 1440px)
-═══════════════════════════════════════════════ */
 @media(min-width:1440px){
   .mc{max-width:1300px;padding:20px}
   .card{padding:20px}
@@ -277,7 +256,6 @@ td{padding:10px 8px;border-bottom:1px solid var(--divider);font-size:12px;color:
 }
 </style>
 
-<!-- Theme Toggle Button -->
 <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" title="Toggle Theme">🌙</button>
 
 <div class="mc">
@@ -313,6 +291,43 @@ td{padding:10px 8px;border-bottom:1px solid var(--divider);font-size:12px;color:
 <button class="btn b3" id="tpbtn" onclick="toggleTP()">Loading...</button>
 </div>
 <div class="warn">⚠️ If internet breaks after enabling, click again to disable.</div>
+</div>
+
+<div class="card">
+<div class="title">⚡ Auto Proxy Testing <span class="at-status at-inactive" id="atStatus" style="margin-left:auto">OFF</span></div>
+<div class="sm">Automatically test all proxies and select the fastest one at regular intervals.</div>
+<div class="at-controls">
+<div class="at-row">
+<span>Enable Auto Test</span>
+<label class="at-toggle">
+<input type="checkbox" id="atEnable" onchange="toggleAT()">
+<span class="at-slider"></span>
+</label>
+</div>
+<div class="at-row">
+<span>Auto Select Fastest</span>
+<label class="at-toggle">
+<input type="checkbox" id="atAutoSelect" onchange="saveATSettings()">
+<span class="at-slider"></span>
+</label>
+</div>
+</div>
+<div class="at-row" style="margin-top:10px">
+<span>Test Interval</span>
+<select class="at-select" id="atInterval" onchange="saveATSettings();if(atRunning)restartAT()">
+<option value="60000">1 minute</option>
+<option value="120000">2 minutes</option>
+<option value="300000" selected>5 minutes</option>
+<option value="600000">10 minutes</option>
+<option value="900000">15 minutes</option>
+<option value="1800000">30 minutes</option>
+</select>
+</div>
+<div class="btns" style="margin-top:12px">
+<button class="btn b4" onclick="runManualTest()">🚀 Test Now</button>
+</div>
+<div class="at-last" id="atLast">Last test: Never</div>
+<div class="at-info">💡 Tip: Enable "Auto Select Fastest" to automatically use the best proxy.</div>
 </div>
 
 <div class="card">
@@ -464,7 +479,6 @@ function toggleTheme(){
   localStorage.setItem('dinoclash-theme',newTheme);
   var btn=document.getElementById('themeBtn');
   if(btn)btn.innerHTML=newTheme==='dark'?'☀️':'🌙';
-  // Redraw canvas for theme
   setTimeout(dr,100);
 }
 loadTheme();
@@ -507,7 +521,148 @@ var ll=[],lfi='all';
 function lf(f,b){lfi=f;document.querySelectorAll('.fb').forEach(function(x){x.classList.remove('ac')});b.classList.add('ac');lr()}
 function lr(){var b=document.getElementById('llb');var fl=lfi==='all'?ll:ll.filter(function(l){return l.type.toLowerCase()===lfi});var h='';fl.forEach(function(l){h+='<div class="l'+l.type.charAt(0).toLowerCase()+'">['+l.type+'] '+l.payload+'</div>'});b.innerHTML=h||'<div style="color:var(--text-muted);text-align:center;padding:40px">Waiting for logs...</div>';b.scrollTop=b.scrollHeight}
 function lw(){try{var ws=new WebSocket('ws://'+location.hostname+':9595/logs?token='+S+'&level=debug');ws.onmessage=function(e){var d=JSON.parse(e.data);ll.push(d);if(ll.length>500)ll.shift();lr()};ws.onclose=function(){setTimeout(lw,3000)}}catch(e){setTimeout(lw,5000)}}
+
+// ═══════════════════════════════════════════════
+// AUTO PROXY TESTING
+// ═══════════════════════════════════════════════
+var atTimer=null,atRunning=false;
+
+function loadATSettings(){
+  var enable=localStorage.getItem('dinoclash-at-enable')==='true';
+  var autoSelect=localStorage.getItem('dinoclash-at-autoselect')==='true';
+  var interval=localStorage.getItem('dinoclash-at-interval')||'300000';
+  document.getElementById('atEnable').checked=enable;
+  document.getElementById('atAutoSelect').checked=autoSelect;
+  document.getElementById('atInterval').value=interval;
+  if(enable)startAT();
+}
+
+function saveATSettings(){
+  localStorage.setItem('dinoclash-at-enable',document.getElementById('atEnable').checked);
+  localStorage.setItem('dinoclash-at-autoselect',document.getElementById('atAutoSelect').checked);
+  localStorage.setItem('dinoclash-at-interval',document.getElementById('atInterval').value);
+}
+
+function toggleAT(){
+  saveATSettings();
+  if(document.getElementById('atEnable').checked){
+    startAT();
+  }else{
+    stopAT();
+  }
+}
+
+function startAT(){
+  atRunning=true;
+  updateATStatus('ON','at-active');
+  runAutoTest();
+  var interval=parseInt(document.getElementById('atInterval').value)||300000;
+  atTimer=setInterval(runAutoTest,interval);
+}
+
+function stopAT(){
+  atRunning=false;
+  updateATStatus('OFF','at-inactive');
+  if(atTimer){
+    clearInterval(atTimer);
+    atTimer=null;
+  }
+}
+
+function restartAT(){
+  stopAT();
+  document.getElementById('atEnable').checked=true;
+  startAT();
+}
+
+function updateATStatus(text,className){
+  var el=document.getElementById('atStatus');
+  if(el){
+    el.innerText=text;
+    el.className='at-status '+className;
+  }
+}
+
+function runManualTest(){
+  updateATStatus('TESTING...','at-testing');
+  runAutoTest();
+}
+
+function runAutoTest(){
+  fetch(A+'/proxies',{headers:H})
+    .then(function(r){return r.json()})
+    .then(function(d){
+      if(!d||!d.proxies){
+        updateATStatus('NO PROXY','at-inactive');
+        return;
+      }
+      
+      var testPromises=[];
+      var proxyNames=[];
+      
+      Object.keys(d.proxies).forEach(function(n){
+        var t=d.proxies[n].type;
+        if(['Selector','URLTest','Fallback','LoadBalance','Direct','Reject','Compatible'].indexOf(t)<0){
+          proxyNames.push(n);
+          testPromises.push(
+            fetch(A+'/proxies/'+encodeURIComponent(n)+'/delay?timeout=5000&url=http://www.gstatic.com/generate_204',{headers:H})
+              .then(function(r){return r.json()})
+              .then(function(res){return{name:n,delay:res.delay||0}})
+              .catch(function(){return{name:n,delay:0}})
+          );
+        }
+      });
+      
+      if(testPromises.length===0){
+        updateATStatus('NO PROXY','at-inactive');
+        return;
+      }
+      
+      Promise.all(testPromises).then(function(results){
+        var valid=results.filter(function(r){return r.delay>0});
+        valid.sort(function(a,b){return a.delay-b.delay});
+        
+        var now=new Date().toLocaleTimeString();
+        document.getElementById('atLast').innerText='Last test: '+now+' ('+valid.length+'/'+results.length+' active)';
+        
+        if(atRunning){
+          updateATStatus('ON','at-active');
+        }else{
+          updateATStatus('DONE','at-active');
+          setTimeout(function(){
+            if(!atRunning)updateATStatus('OFF','at-inactive');
+          },3000);
+        }
+        
+        // Auto select fastest
+        if(document.getElementById('atAutoSelect').checked && valid.length>0){
+          var fastest=valid[0].name;
+          // Find selector groups and update
+          Object.keys(d.proxies).forEach(function(g){
+            if(d.proxies[g].type==='Selector' && d.proxies[g].all && d.proxies[g].all.indexOf(fastest)>=0){
+              fetch(A+'/proxies/'+encodeURIComponent(g),{
+                method:'PUT',
+                headers:H,
+                body:JSON.stringify({name:fastest})
+              }).catch(function(){});
+            }
+          });
+        }
+        
+        // Refresh proxy tab if visible
+        if(document.getElementById('pg-proxy').classList.contains('show')){
+          setTimeout(pl,500);
+        }
+      });
+    })
+    .catch(function(){
+      updateATStatus('ERROR','at-inactive');
+    });
+}
+
+// Init
 chk();gc();gn();sw();lw();
+loadATSettings();
 setInterval(chk,10000);setInterval(gc,10000);setInterval(gn,5000);
 setInterval(function(){if(document.getElementById('pg-conn').classList.contains('show'))cnl()},3000);
 setInterval(function(){if(document.getElementById('pg-proxy').classList.contains('show'))pl()},15000);
