@@ -6,8 +6,6 @@
 # Supports: OpenWrt v21 to v25+ | All Architectures
 # ═══════════════════════════════════════════════
 
-set -e
-
 REPO="https://raw.githubusercontent.com/jahid421/DinoClash-openwrt/main"
 V="v1.18.10"
 D="/etc/mihomo"
@@ -55,17 +53,22 @@ fi
 # ═══════════════════════════════════════════════
 # AUTO-INSTALL CURL
 # ═══════════════════════════════════════════════
+USE_WGET=0
 if ! command -v curl >/dev/null 2>&1; then
     echo "[*] curl not found, installing..."
-    $PKG_UPDATE >/dev/null 2>&1
-    $PKG_INSTALL curl ca-bundle ca-certificates >/dev/null 2>&1 || {
-        if command -v wget >/dev/null 2>&1; then
-            USE_WGET=1
-        else
-            echo "❌ ERROR: Neither curl nor wget available!"
-            exit 1
-        fi
-    }
+    $PKG_UPDATE >/dev/null 2>&1 || true
+    $PKG_INSTALL curl ca-bundle ca-certificates >/dev/null 2>&1 || true
+fi
+
+# Re-check after install attempt
+if command -v curl >/dev/null 2>&1; then
+    USE_WGET=0
+elif command -v wget >/dev/null 2>&1; then
+    USE_WGET=1
+    echo "[!] Using wget instead of curl"
+else
+    echo "❌ ERROR: Neither curl nor wget available!"
+    exit 1
 fi
 
 dl() {
@@ -122,8 +125,9 @@ echo "[✓] Architecture: $M"
 # ═══════════════════════════════════════════════
 # SPACE CHECK
 # ═══════════════════════════════════════════════
-AVAIL=$(df / | tail -1 | awk '{print $4}')
-if [ "$AVAIL" -lt 30000 ]; then
+AVAIL=$(df / 2>/dev/null | awk 'NR==2{print $4}')
+AVAIL=${AVAIL:-0}
+if [ "$AVAIL" -gt 0 ] && [ "$AVAIL" -lt 30000 ] 2>/dev/null; then
     echo ""
     echo "⚠️  WARNING: Low disk space ($((AVAIL/1024)) MB free)"
     echo "   Required: ~40 MB"
@@ -136,7 +140,7 @@ fi
 # INSTALL DEPENDENCIES
 # ═══════════════════════════════════════════════
 echo "[*] Installing dependencies..."
-$PKG_UPDATE >/dev/null 2>&1
+$PKG_UPDATE >/dev/null 2>&1 || true
 
 for p in curl ca-bundle ca-certificates ip-full kmod-tun kmod-nft-tproxy coreutils-nohup; do
     $PKG_INSTALL $p >/dev/null 2>&1 || true
@@ -182,7 +186,7 @@ else
         armv6) ALTS="armv7 armv5" ;;
         armv5) ALTS="armv7" ;;
         arm64) ALTS="armv7" ;;
-        amd64-compatible) ALTS="amd64 386" ;;
+        amd64-compatible) ALTS="386" ;;
         *) ALTS="amd64-compatible arm64 mipsle-softfloat mips-softfloat" ;;
     esac
     FOUND=0
@@ -228,10 +232,20 @@ echo "[✓] GeoIP ready"
 echo "[*] Downloading dashboard..."
 cd /tmp && rm -f ui.tgz
 dl "https://github.com/MetaCubeX/metacubexd/releases/latest/download/compressed-dist.tgz" ui.tgz 2>/dev/null || true
-rm -rf $D/ui/*
-tar -xzf ui.tgz -C $D/ui/ 2>/dev/null || true
-rm -f ui.tgz
-echo "[✓] Dashboard installed"
+if [ -f /tmp/ui.tgz ] && [ -s /tmp/ui.tgz ]; then
+    rm -rf $D/ui/*
+    tar -xzf ui.tgz -C $D/ui/ 2>/dev/null || true
+    # Handle subfolder extraction
+    if [ -d "$D/ui/dist" ]; then
+        mv $D/ui/dist/* $D/ui/ 2>/dev/null || true
+        rm -rf $D/ui/dist
+    fi
+    rm -f ui.tgz
+    echo "[✓] Dashboard installed"
+else
+    echo "[!] Dashboard download failed, skipping"
+    rm -f ui.tgz
+fi
 
 # ═══════════════════════════════════════════════
 # DOWNLOAD DINOCLASH PANEL
@@ -311,6 +325,9 @@ JSONEOF
     echo "[✓] v25+ ucode menu added"
 fi
 
+# Create bypass file for device bypass feature
+touch $D/bypass_macs
+
 echo "[✓] DinoClash panel installed"
 
 # ═══════════════════════════════════════════════
@@ -319,6 +336,10 @@ echo "[✓] DinoClash panel installed"
 LAN_IF=$(uci get network.lan.device 2>/dev/null || echo "br-lan")
 LAN_IP=$(uci -q get network.lan.ipaddr || echo "192.168.1.1")
 sed -i "s/iifname != \"br-lan\"/iifname != \"$LAN_IF\"/g" $D/nft.conf 2>/dev/null
+# Verify LAN interface was set correctly
+if ! grep -q "\"$LAN_IF\"" $D/nft.conf 2>/dev/null; then
+    echo "[!] WARNING: nft.conf LAN interface may need manual fix"
+fi
 echo "[✓] LAN: $LAN_IP on $LAN_IF"
 
 # ═══════════════════════════════════════════════
@@ -328,7 +349,8 @@ uci -q delete firewall.mihomo_proxy 2>/dev/null
 uci set firewall.mihomo_proxy=rule
 uci set firewall.mihomo_proxy.name='Allow-DinoClash'
 uci set firewall.mihomo_proxy.src='lan'
-uci set firewall.mihomo_proxy.proto='tcp udp'
+uci add_list firewall.mihomo_proxy.proto='tcp'
+uci add_list firewall.mihomo_proxy.proto='udp'
 uci set firewall.mihomo_proxy.dest_port='7890 7892 9595 1053'
 uci set firewall.mihomo_proxy.target='ACCEPT'
 uci commit firewall
@@ -371,6 +393,9 @@ if pgrep -f mihomo >/dev/null 2>&1; then
     echo "      Upload your YAML config from LuCI panel"
     echo ""
     echo "   ⚠️  Turn OFF manual proxy on devices!"
+    echo ""
+    echo "   🖥️  Remote Desktop (UltraViewer/AnyDesk):"
+    echo "      Use Device Bypass in LuCI panel"
     echo ""
 else
     echo "🦕 ❌ INSTALLATION FAILED!"
