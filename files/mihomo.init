@@ -30,17 +30,15 @@ start_service() {
     procd_close_instance
 
     logger -t dinoclash "DinoClash started"
-}
 
-boot() {
-    # Wait for network
-    sleep 5
-    start "$@"
-    # Restore transparent proxy after boot
-    if [ -f "$TRANSPARENT_FILE" ] && [ "$(cat $TRANSPARENT_FILE)" = "1" ]; then
-        setup_transparent
-        restore_bypass
-    fi
+    # Setup transparent proxy after core starts (background)
+    (
+        sleep 3
+        if [ -f "$TRANSPARENT_FILE" ] && [ "$(cat $TRANSPARENT_FILE)" = "1" ]; then
+            setup_transparent
+            restore_bypass
+        fi
+    ) &
 }
 
 stop_service() {
@@ -53,6 +51,8 @@ setup_transparent() {
     sed -i "s/iifname != \"[^\"]*\"/iifname != \"$LAN_IF\"/g" /etc/mihomo/nft.conf 2>/dev/null
 
     if command -v nft >/dev/null 2>&1; then
+        # Clean old table first
+        nft delete table inet mihomo 2>/dev/null || true
         nft -f /etc/mihomo/nft.conf 2>/dev/null || true
         logger -t dinoclash "Transparent proxy: nftables"
     elif command -v iptables >/dev/null 2>&1; then
@@ -76,7 +76,6 @@ setup_transparent() {
 }
 
 restore_bypass() {
-    # Restore saved bypass MACs after reboot
     [ -f "$BYPASS_FILE" ] || return 0
     [ -f /etc/mihomo/nft.conf ] || return 0
     command -v nft >/dev/null 2>&1 || return 0
