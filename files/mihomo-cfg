@@ -9,6 +9,10 @@ echo ""
 
 if [ "$REQUEST_METHOD" = "POST" ]; then
     TMP="/tmp/mhcfg_$$.yaml"
+    
+    # Cleanup on exit
+    trap "rm -f ${TMP}.opt ${TMP}.lazy ${TMP}.new /tmp/mhcfg_err.log" EXIT
+    
     cat > "$TMP"
     
     if [ -s "$TMP" ]; then
@@ -51,14 +55,23 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
         END { if (in_urltest && !has_lazy) print "    lazy: true" }
         ' "$TMP" > "${TMP}.lazy" && mv "${TMP}.lazy" "$TMP"
         
-        # STEP 2: REQUIRED SETTINGS
-        grep -q '^mixed-port:' "$TMP" || sed -i '1i mixed-port: 7890' "$TMP"
-        grep -q '^redir-port:' "$TMP" || sed -i '1i redir-port: 7892' "$TMP"
-        grep -q '^allow-lan:' "$TMP" || sed -i '1i allow-lan: true' "$TMP"
-        grep -q "^bind-address:" "$TMP" || sed -i "1i bind-address: '*'" "$TMP"
-        grep -q '^mode:' "$TMP" || sed -i '1i mode: rule' "$TMP"
-        grep -q '^log-level:' "$TMP" || sed -i '1i log-level: silent' "$TMP"
-        grep -q '^ipv6:' "$TMP" || sed -i '1i ipv6: false' "$TMP"
+        # STEP 2: REQUIRED SETTINGS (busybox compatible)
+        add_if_missing() {
+            local key="$1"
+            local line="$2"
+            if ! grep -q "^${key}" "$TMP"; then
+                { echo "$line"; cat "$TMP"; } > "${TMP}.new" && mv "${TMP}.new" "$TMP"
+            fi
+        }
+        
+        add_if_missing "mixed-port:" "mixed-port: 7890"
+        add_if_missing "redir-port:" "redir-port: 7892"
+        add_if_missing "allow-lan:" "allow-lan: true"
+        add_if_missing "bind-address:" "bind-address: '*'"
+        add_if_missing "mode:" "mode: rule"
+        add_if_missing "log-level:" "log-level: info"
+        add_if_missing "ipv6:" "ipv6: false"
+        
         grep -q '^external-controller:' "$TMP" || echo 'external-controller: 0.0.0.0:9595' >> "$TMP"
         grep -q '^external-ui:' "$TMP" || echo 'external-ui: /etc/mihomo/ui' >> "$TMP"
         grep -q '^secret:' "$TMP" || echo 'secret: "flclash123"' >> "$TMP"
@@ -102,7 +115,7 @@ sniffer:
 SEOF
         fi
         
-        # STEP 5: TUN (disabled)
+        # STEP 5: TUN (disabled for redirect mode)
         if ! grep -q '^tun:' "$TMP"; then
             cat >> "$TMP" << 'TEOF'
 
@@ -184,7 +197,7 @@ DEOF
             echo "SAVED"
         else
             ERR=$(cat /tmp/mhcfg_err.log 2>/dev/null | head -3)
-            rm -f "$TMP" /tmp/mhcfg_err.log
+            rm -f "$TMP"
             echo "INVALID YAML: $ERR"
         fi
     else
