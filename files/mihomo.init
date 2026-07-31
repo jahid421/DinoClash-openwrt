@@ -5,6 +5,7 @@ STOP=10
 
 TRANSPARENT_FILE="/etc/mihomo/transparent"
 ENABLED_FILE="/etc/mihomo/enabled"
+BYPASS_FILE="/etc/mihomo/bypass_macs"
 
 should_start() {
     if [ -f "$ENABLED_FILE" ] && [ "$(cat $ENABLED_FILE)" = "0" ]; then
@@ -18,7 +19,7 @@ start_service() {
         logger -t dinoclash "DinoClash disabled by user"
         return 0
     fi
-    
+
     procd_open_instance mihomo
     procd_set_param command /usr/bin/mihomo -d /etc/mihomo
     procd_set_param respawn 3600 5 5
@@ -27,14 +28,19 @@ start_service() {
     procd_set_param stderr 1
     procd_set_param pidfile /var/run/mihomo.pid
     procd_close_instance
-    
-    sleep 3
-    
+
+    logger -t dinoclash "DinoClash started"
+}
+
+boot() {
+    # Wait for network
+    sleep 5
+    start "$@"
+    # Restore transparent proxy after boot
     if [ -f "$TRANSPARENT_FILE" ] && [ "$(cat $TRANSPARENT_FILE)" = "1" ]; then
         setup_transparent
+        restore_bypass
     fi
-    
-    logger -t dinoclash "DinoClash started"
 }
 
 stop_service() {
@@ -45,12 +51,10 @@ stop_service() {
 setup_transparent() {
     LAN_IF=$(uci get network.lan.device 2>/dev/null || echo "br-lan")
     sed -i "s/iifname != \"[^\"]*\"/iifname != \"$LAN_IF\"/g" /etc/mihomo/nft.conf 2>/dev/null
-    
-    # Try nftables first (OpenWrt 22.03+)
+
     if command -v nft >/dev/null 2>&1; then
         nft -f /etc/mihomo/nft.conf 2>/dev/null || true
         logger -t dinoclash "Transparent proxy: nftables"
-    # Fallback to iptables (OpenWrt 21.02)
     elif command -v iptables >/dev/null 2>&1; then
         iptables -t nat -N DINOCLASH 2>/dev/null || iptables -t nat -F DINOCLASH
         iptables -t nat -A DINOCLASH -d 0.0.0.0/8 -j RETURN
@@ -63,7 +67,6 @@ setup_transparent() {
         iptables -t nat -A DINOCLASH -d 240.0.0.0/4 -j RETURN
         iptables -t nat -A DINOCLASH -p udp --dport 53 -j REDIRECT --to-ports 1053
         iptables -t nat -A DINOCLASH -p tcp --dport 53 -j REDIRECT --to-ports 1053
-        iptables -t nat -A DINOCLASH -p udp --dport 443 -j REDIRECT --to-ports 7892
         iptables -t nat -A DINOCLASH -p tcp -j REDIRECT --to-ports 7892
         iptables -t nat -A PREROUTING -i $LAN_IF -j DINOCLASH
         logger -t dinoclash "Transparent proxy: iptables (legacy)"
@@ -72,11 +75,23 @@ setup_transparent() {
     fi
 }
 
+restore_bypass() {
+    # Restore saved bypass MACs after reboot
+    [ -f "$BYPASS_FILE" ] || return 0
+    [ -f /etc/mihomo/nft.conf ] || return 0
+    command -v nft >/dev/null 2>&1 || return 0
+
+    logger -t dinoclash "Restoring bypass list..."
+    while IFS= read -r MAC; do
+        [ -z "$MAC" ] && continue
+        nft add element inet mihomo bypass_mac { $MAC } 2>/dev/null || true
+        logger -t dinoclash "Bypass restored: $MAC"
+    done < "$BYPASS_FILE"
+}
+
 cleanup_transparent() {
-    # Cleanup nftables
     nft delete table inet mihomo 2>/dev/null || true
-    
-    # Cleanup iptables
+
     if command -v iptables >/dev/null 2>&1; then
         LAN_IF=$(uci get network.lan.device 2>/dev/null || echo "br-lan")
         iptables -t nat -D PREROUTING -i $LAN_IF -j DINOCLASH 2>/dev/null || true
