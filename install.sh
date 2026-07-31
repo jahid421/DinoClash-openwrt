@@ -277,45 +277,6 @@ if [ -d /usr/share/luci/menu.d ]; then
         "title": "DinoClash \ud83e\udd95",
         "order": 60,
         "action": {
-            "type": "firstchild"
-        }
-    },
-    "admin/services/mihomo/overview": {
-        "title": "Overview",
-        "order": 1,
-        "action": {
-            "type": "template",
-            "path": "mihomo/main"
-        }
-    },
-    "admin/services/mihomo/proxy": {
-        "title": "Proxy",
-        "order": 2,
-        "action": {
-            "type": "template",
-            "path": "mihomo/main"
-        }
-    },
-    "admin/services/mihomo/config": {
-        "title": "Config",
-        "order": 3,
-        "action": {
-            "type": "template",
-            "path": "mihomo/main"
-        }
-    },
-    "admin/services/mihomo/connections": {
-        "title": "Connections",
-        "order": 4,
-        "action": {
-            "type": "template",
-            "path": "mihomo/main"
-        }
-    },
-    "admin/services/mihomo/log": {
-        "title": "Log",
-        "order": 5,
-        "action": {
             "type": "template",
             "path": "mihomo/main"
         }
@@ -324,9 +285,6 @@ if [ -d /usr/share/luci/menu.d ]; then
 JSONEOF
     echo "[✓] v25+ ucode menu added"
 fi
-
-# Create bypass file for device bypass feature
-touch $D/bypass_macs
 
 echo "[✓] DinoClash panel installed"
 
@@ -395,7 +353,7 @@ if pgrep -f mihomo >/dev/null 2>&1; then
     echo "   ⚠️  Turn OFF manual proxy on devices!"
     echo ""
     echo "   🖥️  Remote Desktop (UltraViewer/AnyDesk):"
-    echo "      Use Device Bypass in LuCI panel"
+    echo "      Config এ rules add করে bypass করুন"
     echo ""
 else
     echo "🦕 ❌ INSTALLATION FAILED!"
