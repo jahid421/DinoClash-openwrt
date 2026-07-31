@@ -8,14 +8,14 @@ redir-port: 7892
 allow-lan: true
 bind-address: '*'
 mode: rule
-log-level: silent
+log-level: info
 ipv6: false
 external-controller: 0.0.0.0:9595
 external-ui: /etc/mihomo/ui
 secret: "flclash123"
 geodata-mode: true
 geodata-loader: standard
-geo-auto-update: true
+geo-auto-update: false
 find-process-mode: "off"
 global-client-fingerprint: chrome
 tcp-concurrent: true
@@ -71,6 +71,10 @@ dns:
   fallback:
     - tls://1.1.1.1:853
     - tls://dns.google:853
+  nameserver-policy:
+    '+.google.com': 'https://dns.google/dns-query'
+    '+.facebook.com': 'https://1.1.1.1/dns-query'
+    '+.youtube.com': 'https://dns.google/dns-query'
 
 proxies: []
 
@@ -82,6 +86,7 @@ proxy-groups:
     url: http://www.gstatic.com/generate_204
     interval: 120
     tolerance: 20
+    lazy: true
 
 rules:
   - 'IP-CIDR,192.168.0.0/16,DIRECT,no-resolve'
