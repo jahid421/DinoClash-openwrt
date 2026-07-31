@@ -1,5 +1,6 @@
 # ═══════════════════════════════════════════
-# 🦕 DinoClash Config with UltraViewer/Remote Desktop Fix
+# 🦕 DinoClash Default Config for OpenWrt
+# Ultra Speed + Low Latency + Chat Apps Fix
 # Developer: Jahid Hasan Shuvo
 # ═══════════════════════════════════════════
 mixed-port: 7890
@@ -7,7 +8,7 @@ redir-port: 7892
 allow-lan: true
 bind-address: '*'
 mode: rule
-log-level: info
+log-level: warning
 ipv6: false
 external-controller: 0.0.0.0:9595
 external-ui: /etc/mihomo/ui
@@ -19,8 +20,9 @@ find-process-mode: "off"
 global-client-fingerprint: chrome
 tcp-concurrent: true
 unified-delay: true
-keep-alive-interval: 10
-keep-alive-idle: 10
+keep-alive-interval: 15
+keep-alive-idle: 600
+disable-keep-alive: false
 
 profile:
   store-selected: true
@@ -40,6 +42,14 @@ sniffer:
       ports: [443, 8443]
     QUIC:
       ports: [443, 8443]
+  skip-domain:
+    - "Mijia Cloud"
+    - "+.push.apple.com"
+    - "+.linkedin.com"
+    - "+.discord.com"
+    - "+.discordapp.com"
+    - "+.whatsapp.net"
+    - "+.messenger.com"
 
 tun:
   enable: false
@@ -59,46 +69,37 @@ dns:
   listen: 0.0.0.0:1053
   ipv6: false
   enhanced-mode: redir-host
+  cache-algorithm: arc
+  use-hosts: true
+  use-system-hosts: true
   default-nameserver:
-    - 223.5.5.5
     - 1.1.1.1
     - 8.8.8.8
+    - 223.5.5.5
     - 114.114.114.114
   nameserver:
     - https://1.1.1.1/dns-query
     - https://dns.google/dns-query
+    - https://cloudflare-dns.com/dns-query
   fallback:
     - tls://1.1.1.1:853
     - tls://dns.google:853
   nameserver-policy:
+    '+.linkedin.com': '1.1.1.1'
+    '+.discord.com': '1.1.1.1'
+    '+.discordapp.com': '1.1.1.1'
+    '+.discord.gg': '1.1.1.1'
+    '+.discordapp.net': '1.1.1.1'
+    '+.whatsapp.com': '1.1.1.1'
+    '+.whatsapp.net': '1.1.1.1'
+    '+.messenger.com': '1.1.1.1'
+    '+.facebook.com': '1.1.1.1'
+    '+.instagram.com': '1.1.1.1'
+    '+.telegram.org': '1.1.1.1'
     '+.google.com': 'https://dns.google/dns-query'
-    '+.facebook.com': 'https://1.1.1.1/dns-query'
     '+.youtube.com': 'https://dns.google/dns-query'
-    '+.ultraviewer.net': '223.5.5.5'
-    '+.anydesk.com': '223.5.5.5'
-    '+.teamviewer.com': '223.5.5.5'
 
-# ═══════════════════════════════════════════
-# 🔧 তোমার proxy server এখানে add করো
-# উদাহরণ নিচে দেওয়া আছে
-# ═══════════════════════════════════════════
-proxies:
-  # তোমার actual proxy এখানে add করো
-  # নিচে example format:
-  #
-  # - name: "MyServer-1"
-  #   type: vmess
-  #   server: your-server.com
-  #   port: 443
-  #   uuid: your-uuid-here
-  #   alterId: 0
-  #   cipher: auto
-  #   tls: true
-  #   network: ws
-  #   ws-opts:
-  #     path: /path
-  #     headers:
-  #       Host: your-server.com
+proxies: []
 
 proxy-groups:
   - name: "Proxy"
@@ -106,22 +107,41 @@ proxy-groups:
     proxies:
       - Auto
       - DIRECT
-      # এখানে তোমার proxy names add হবে
 
   - name: "Auto"
     type: url-test
     proxies:
       - DIRECT
-      # এখানে তোমার proxy names add হবে
     url: http://www.gstatic.com/generate_204
-    interval: 120
-    tolerance: 20
+    interval: 300
+    tolerance: 50
     lazy: true
 
 rules:
-  # ═══════════════════════════════════════════
-  # 🖥️ Remote Desktop Apps Bypass (DIRECT)
-  # ═══════════════════════════════════════════
+  # ═══ Chat & Social Apps (DIRECT for speed) ═══
+  - 'DOMAIN-SUFFIX,linkedin.com,DIRECT'
+  - 'DOMAIN-SUFFIX,licdn.com,DIRECT'
+  - 'DOMAIN-KEYWORD,linkedin,DIRECT'
+  - 'DOMAIN-SUFFIX,discord.com,DIRECT'
+  - 'DOMAIN-SUFFIX,discord.gg,DIRECT'
+  - 'DOMAIN-SUFFIX,discordapp.com,DIRECT'
+  - 'DOMAIN-SUFFIX,discordapp.net,DIRECT'
+  - 'DOMAIN-KEYWORD,discord,DIRECT'
+  - 'DOMAIN-SUFFIX,whatsapp.com,DIRECT'
+  - 'DOMAIN-SUFFIX,whatsapp.net,DIRECT'
+  - 'DOMAIN-KEYWORD,whatsapp,DIRECT'
+  - 'DOMAIN-SUFFIX,messenger.com,DIRECT'
+  - 'DOMAIN-KEYWORD,messenger,DIRECT'
+  - 'DOMAIN-SUFFIX,fbcdn.net,DIRECT'
+  - 'DOMAIN-SUFFIX,telegram.org,DIRECT'
+  - 'DOMAIN-SUFFIX,t.me,DIRECT'
+  - 'DOMAIN-KEYWORD,telegram,DIRECT'
+  - 'DOMAIN-SUFFIX,slack.com,DIRECT'
+  - 'DOMAIN-SUFFIX,zoom.us,DIRECT'
+  - 'DOMAIN-SUFFIX,skype.com,DIRECT'
+  - 'DOMAIN-SUFFIX,teams.microsoft.com,DIRECT'
+
+  # ═══ Remote Desktop (DIRECT) ═══
   - 'DOMAIN-SUFFIX,ultraviewer.net,DIRECT'
   - 'DOMAIN-KEYWORD,ultraviewer,DIRECT'
   - 'DOMAIN-SUFFIX,anydesk.com,DIRECT'
@@ -131,15 +151,10 @@ rules:
   - 'DOMAIN-SUFFIX,rustdesk.com,DIRECT'
   - 'DOMAIN-KEYWORD,rustdesk,DIRECT'
   - 'DOMAIN-SUFFIX,logmein.com,DIRECT'
-  - 'DOMAIN-SUFFIX,gotomypc.com,DIRECT'
   - 'DOMAIN-SUFFIX,splashtop.com,DIRECT'
   - 'DOMAIN-SUFFIX,parsec.app,DIRECT'
-  - 'DOMAIN-KEYWORD,parsec,DIRECT'
 
-  # ═══════════════════════════════════════════
-  # 🎮 Gaming Apps Bypass (DIRECT)
-  # ═══════════════════════════════════════════
-  - 'DOMAIN-SUFFIX,pubgmobile.com,DIRECT'
+  # ═══ Gaming (DIRECT) ═══
   - 'DOMAIN-KEYWORD,pubg,DIRECT'
   - 'DOMAIN-SUFFIX,epicgames.com,DIRECT'
   - 'DOMAIN-SUFFIX,steampowered.com,DIRECT'
@@ -147,17 +162,7 @@ rules:
   - 'DOMAIN-SUFFIX,riotgames.com,DIRECT'
   - 'DOMAIN-SUFFIX,battle.net,DIRECT'
 
-  # ═══════════════════════════════════════════
-  # 📱 Local App Bypass (DIRECT)
-  # ═══════════════════════════════════════════
-  - 'PROCESS-NAME,UltraViewer_Service.exe,DIRECT'
-  - 'PROCESS-NAME,UltraViewer_Desktop.exe,DIRECT'
-  - 'PROCESS-NAME,AnyDesk.exe,DIRECT'
-  - 'PROCESS-NAME,TeamViewer.exe,DIRECT'
-
-  # ═══════════════════════════════════════════
-  # 🏠 LAN Safety (DIRECT)
-  # ═══════════════════════════════════════════
+  # ═══ LAN Safety (DIRECT) ═══
   - 'IP-CIDR,192.168.0.0/16,DIRECT,no-resolve'
   - 'IP-CIDR,10.0.0.0/8,DIRECT,no-resolve'
   - 'IP-CIDR,172.16.0.0/12,DIRECT,no-resolve'
@@ -168,13 +173,9 @@ rules:
   - 'DOMAIN-SUFFIX,lan,DIRECT'
   - 'DST-PORT,9595,DIRECT'
 
-  # ═══════════════════════════════════════════
-  # 🇧🇩 Bangladesh / Local Traffic (DIRECT)
-  # ═══════════════════════════════════════════
+  # ═══ Bangladesh Local (DIRECT) ═══
   - 'GEOIP,BD,DIRECT,no-resolve'
   - 'GEOIP,LAN,DIRECT,no-resolve'
 
-  # ═══════════════════════════════════════════
-  # 🌍 Everything Else → Proxy
-  # ═══════════════════════════════════════════
+  # ═══ Everything Else → Proxy ═══
   - 'MATCH,Proxy'
