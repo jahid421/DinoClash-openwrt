@@ -206,8 +206,20 @@ input:checked+.at-slider:before{transform:translateX(22px)}
 .du-up{color:#6366f1;font-weight:600}
 .du-dn{color:#22c55e;font-weight:600}
 .du-since{font-size:10px;color:var(--text-muted);margin-top:6px;font-style:italic}
-.du-progress{height:4px;background:var(--progress-bg);border-radius:2px;overflow:hidden;margin-top:10px}
-.du-progress-bar{height:100%;background:linear-gradient(90deg,#6366f1,#8b5cf6);transition:width .5s}
+
+/* Notification Card */
+.nt-alert{background:var(--error-bg);border:1px solid #ef4444;color:var(--error-text);padding:14px;border-radius:10px;margin-bottom:12px;display:none;animation:slideIn .3s}
+.nt-alert.show{display:block}
+.nt-alert.warning{background:var(--warn-bg);border-color:#f59e0b;color:var(--warn-text)}
+@keyframes slideIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+.nt-alert-title{font-weight:700;font-size:13px;margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.nt-alert-msg{font-size:12px;line-height:1.5}
+.nt-status{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;text-transform:uppercase}
+.nt-active{background:var(--success-bg);color:var(--success-text)}
+.nt-inactive{background:var(--error-bg);color:var(--error-text)}
+.nt-snoozed{background:var(--warn-bg);color:var(--warn-text)}
+.nt-perm-btn{background:var(--accent);color:#fff;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;margin-top:10px}
+.nt-perm-btn:hover{opacity:.9}
 
 ::-webkit-scrollbar{width:8px;height:8px}
 ::-webkit-scrollbar-track{background:transparent}
@@ -290,6 +302,12 @@ input:checked+.at-slider:before{transform:translateX(22px)}
 
 <div class="pg show" id="pg-overview">
 
+<!-- Notification Alert -->
+<div class="nt-alert" id="ntAlert">
+<div class="nt-alert-title" id="ntAlertTitle">⚠️ Alert</div>
+<div class="nt-alert-msg" id="ntAlertMsg">Message here</div>
+</div>
+
 <div class="card">
 <div class="hdr">
 <div class="hdr-info">
@@ -315,9 +333,44 @@ input:checked+.at-slider:before{transform:translateX(22px)}
 </div>
 
 <div class="card">
+<div class="title">🔔 Notifications <span class="nt-status nt-inactive" id="ntStatus" style="margin-left:auto">OFF</span></div>
+<div class="sm">Get alerts when proxy fails, service stops, or connection issues occur.</div>
+<div class="at-controls">
+<div class="at-row">
+<span>Enable Notifications</span>
+<label class="at-toggle">
+<input type="checkbox" id="ntEnable" onchange="toggleNT()">
+<span class="at-slider"></span>
+</label>
+</div>
+<div class="at-row">
+<span>Sound Alert</span>
+<label class="at-toggle">
+<input type="checkbox" id="ntSound" onchange="saveNTSettings()">
+<span class="at-slider"></span>
+</label>
+</div>
+</div>
+<div class="at-row" style="margin-top:10px">
+<span>Snooze Alerts</span>
+<select class="at-select" id="ntSnooze" onchange="snoozeNT()">
+<option value="0">Not Snoozed</option>
+<option value="300000">5 minutes</option>
+<option value="600000">10 minutes</option>
+<option value="1800000">30 minutes</option>
+<option value="3600000">1 hour</option>
+</select>
+</div>
+<div class="btns" style="margin-top:12px">
+<button class="btn b4" onclick="requestNTPermission()">🔔 Enable Browser Notifications</button>
+<button class="btn b3" onclick="testNotification()">🧪 Test</button>
+</div>
+<div class="at-info" id="ntInfo">💡 Enable browser notifications to receive alerts even when tab is inactive.</div>
+</div>
+
+<div class="card">
 <div class="title">📊 Data Usage Tracker</div>
 <div class="du-grid">
-
 <div class="du-box today">
 <div class="du-label">📅 Today <span style="font-size:9px;font-weight:600" id="duTodayDate"></span></div>
 <div class="du-total" id="duTodayTotal">0 B</div>
@@ -326,7 +379,6 @@ input:checked+.at-slider:before{transform:translateX(22px)}
 <span class="du-dn">↓ <span id="duTodayDn">0 B</span></span>
 </div>
 </div>
-
 <div class="du-box month">
 <div class="du-label">📆 This Month <span style="font-size:9px;font-weight:600" id="duMonthName"></span></div>
 <div class="du-total" id="duMonthTotal">0 B</div>
@@ -335,7 +387,6 @@ input:checked+.at-slider:before{transform:translateX(22px)}
 <span class="du-dn">↓ <span id="duMonthDn">0 B</span></span>
 </div>
 </div>
-
 <div class="du-box session">
 <div class="du-label">⏱️ Session</div>
 <div class="du-total" id="duSessionTotal">0 B</div>
@@ -345,7 +396,6 @@ input:checked+.at-slider:before{transform:translateX(22px)}
 </div>
 <div class="du-since" id="duSessionSince">Started: -</div>
 </div>
-
 </div>
 <div class="btns">
 <button class="btn b3" onclick="resetDU('session')">Reset Session</button>
@@ -527,21 +577,8 @@ GitHub
 // ═══════════════════════════════════════════════
 // THEME TOGGLE
 // ═══════════════════════════════════════════════
-function loadTheme(){
-  var saved=localStorage.getItem('dinoclash-theme')||'light';
-  document.documentElement.setAttribute('data-theme',saved);
-  var btn=document.getElementById('themeBtn');
-  if(btn)btn.innerHTML=saved==='dark'?'☀️':'🌙';
-}
-function toggleTheme(){
-  var current=document.documentElement.getAttribute('data-theme')||'light';
-  var newTheme=current==='dark'?'light':'dark';
-  document.documentElement.setAttribute('data-theme',newTheme);
-  localStorage.setItem('dinoclash-theme',newTheme);
-  var btn=document.getElementById('themeBtn');
-  if(btn)btn.innerHTML=newTheme==='dark'?'☀️':'🌙';
-  setTimeout(dr,100);
-}
+function loadTheme(){var saved=localStorage.getItem('dinoclash-theme')||'light';document.documentElement.setAttribute('data-theme',saved);var btn=document.getElementById('themeBtn');if(btn)btn.innerHTML=saved==='dark'?'☀️':'🌙'}
+function toggleTheme(){var current=document.documentElement.getAttribute('data-theme')||'light';var newTheme=current==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',newTheme);localStorage.setItem('dinoclash-theme',newTheme);var btn=document.getElementById('themeBtn');if(btn)btn.innerHTML=newTheme==='dark'?'☀️':'🌙';setTimeout(dr,100)}
 loadTheme();
 
 // ═══════════════════════════════════════════════
@@ -555,7 +592,45 @@ function sp(n,b){document.querySelectorAll('.pg').forEach(function(p){p.classLis
 function pf(el){if(!el.files.length)return;document.getElementById('fname').innerText='File: '+el.files[0].name;var r=new FileReader();r.onload=function(e){yc=e.target.result||'';document.getElementById('ubtn').disabled=yc.length<5};r.readAsText(el.files[0])}
 function dup(){if(!yc){alert('Select file');return}fetch('/cgi-bin/mihomo-cfg',{method:'POST',body:yc}).then(function(r){return r.text()}).then(function(t){alert(t.indexOf('SAVED')>=0?'Uploaded & Applied!':'Error: '+t);setTimeout(function(){chk();gc()},3000)}).catch(function(){alert('Failed')})}
 function dsub(){var u=document.getElementById('suburl').value;if(!u){alert('Enter URL');return}document.getElementById('submsg').innerText='Downloading...';fetch('/cgi-bin/mihomo-sub?url='+encodeURIComponent(u)).then(function(r){return r.text()}).then(function(t){document.getElementById('submsg').innerText=(t||'').trim()==='OK'?'Applied!':'Failed: '+t;setTimeout(function(){chk();gc()},3000)}).catch(function(){document.getElementById('submsg').innerText='Error'})}
-function chk(){fetch('/cgi-bin/mihomo-api?action=status').then(function(r){return r.json()}).then(function(d){if(d&&d.running){document.getElementById('dot').className='dot on';document.getElementById('stxt').innerText='Running';document.getElementById('ssub').innerText='PID: '+d.pid+' | Mem: '+d.memory;document.getElementById('mem').innerText=d.memory;updateTPBtn(d.transparent)}else{document.getElementById('dot').className='dot off';document.getElementById('stxt').innerText='Stopped';document.getElementById('ssub').innerText='PID: - | Mem: -';updateTPBtn(d?d.transparent:0)}}).catch(function(){});af('/version').then(function(d){if(d)document.getElementById('iver').innerText=d.version||'-'});document.getElementById('mp').innerText=location.hostname+':7890'}
+
+// ═══════════════════════════════════════════════
+// STATUS CHECK (with notification integration)
+// ═══════════════════════════════════════════════
+var lastServiceStatus=null;
+function chk(){
+  fetch('/cgi-bin/mihomo-api?action=status').then(function(r){return r.json()}).then(function(d){
+    if(d&&d.running){
+      document.getElementById('dot').className='dot on';
+      document.getElementById('stxt').innerText='Running';
+      document.getElementById('ssub').innerText='PID: '+d.pid+' | Mem: '+d.memory;
+      document.getElementById('mem').innerText=d.memory;
+      updateTPBtn(d.transparent);
+      // Notification: service back up
+      if(lastServiceStatus===false){
+        notify('✅ DinoClash Restored','Service is running again',false);
+      }
+      lastServiceStatus=true;
+      hideAlert();
+    }else{
+      document.getElementById('dot').className='dot off';
+      document.getElementById('stxt').innerText='Stopped';
+      document.getElementById('ssub').innerText='PID: - | Mem: -';
+      updateTPBtn(d?d.transparent:0);
+      // Notification: service down
+      if(lastServiceStatus===true){
+        notify('🔴 DinoClash Stopped','Service is not running',true);
+        showAlert('🔴 Service Stopped','DinoClash service is not running. Click Start to restart.',false);
+      }
+      lastServiceStatus=false;
+    }
+  }).catch(function(){
+    if(lastServiceStatus!==false){
+      showAlert('⚠️ Connection Lost','Cannot connect to router API. Check network.',true);
+    }
+  });
+  af('/version').then(function(d){if(d)document.getElementById('iver').innerText=d.version||'-'});
+  document.getElementById('mp').innerText=location.hostname+':7890';
+}
 function updateTPBtn(tp){var btn=document.getElementById('tpbtn');if(!btn)return;if(tp==1){btn.innerText='Auto-Bypass: ON';btn.className='btn b1'}else{btn.innerText='Auto-Bypass: OFF';btn.className='btn b3'}}
 function toggleTP(){var btn=document.getElementById('tpbtn');var isOn=btn.innerText.indexOf('ON')>=0;var action=isOn?'disable_tp':'enable_tp';if(!isOn&&!confirm('Enable Auto-Bypass?\nAll devices will auto-use proxy.\nClick again to disable if problem.'))return;btn.innerText='Please wait...';fetch('/cgi-bin/mihomo-api?action='+action).then(function(r){return r.json()}).then(function(d){setTimeout(function(){chk();gc()},5000)}).catch(function(){alert('Failed')})}
 function gc(){af('/configs').then(function(d){if(!d)return;document.getElementById('imode').innerText=d.mode||'-';document.getElementById('iport').innerText=d['mixed-port']||'-';document.getElementById('idns').innerText=d.dns?(d.dns['enhanced-mode']||'-'):'-';['rule','global','direct'].forEach(function(m){document.getElementById('m-'+m).classList.remove('ac')});var b=document.getElementById('m-'+(d.mode||'rule'));if(b)b.classList.add('ac')})}
@@ -566,140 +641,196 @@ function ug(){fetch('/cgi-bin/mihomo-api?action=update_geo').then(function(){ale
 function fd(){af('/cache/fakeip/flush',{method:'PATCH'}).then(function(){alert('Flushed!')})}
 
 // ═══════════════════════════════════════════════
+// NOTIFICATION SYSTEM
+// ═══════════════════════════════════════════════
+var ntSnoozedUntil=0;
+var ntLastAlerts={};
+var ntCooldown=300000; // 5 min between same alerts
+
+function loadNTSettings(){
+  var enable=localStorage.getItem('dinoclash-nt-enable')==='true';
+  var sound=localStorage.getItem('dinoclash-nt-sound')==='true';
+  var snoozeUntil=parseInt(localStorage.getItem('dinoclash-nt-snooze')||'0');
+  document.getElementById('ntEnable').checked=enable;
+  document.getElementById('ntSound').checked=sound;
+  if(snoozeUntil>Date.now()){
+    ntSnoozedUntil=snoozeUntil;
+    updateNTStatus('SNOOZED','nt-snoozed');
+  }else if(enable){
+    updateNTStatus('ON','nt-active');
+  }else{
+    updateNTStatus('OFF','nt-inactive');
+  }
+  updateNTInfo();
+}
+
+function saveNTSettings(){
+  localStorage.setItem('dinoclash-nt-enable',document.getElementById('ntEnable').checked);
+  localStorage.setItem('dinoclash-nt-sound',document.getElementById('ntSound').checked);
+}
+
+function toggleNT(){
+  saveNTSettings();
+  if(document.getElementById('ntEnable').checked){
+    updateNTStatus('ON','nt-active');
+    if('Notification' in window && Notification.permission==='default'){
+      requestNTPermission();
+    }
+  }else{
+    updateNTStatus('OFF','nt-inactive');
+  }
+  updateNTInfo();
+}
+
+function snoozeNT(){
+  var duration=parseInt(document.getElementById('ntSnooze').value);
+  if(duration>0){
+    ntSnoozedUntil=Date.now()+duration;
+    localStorage.setItem('dinoclash-nt-snooze',ntSnoozedUntil);
+    updateNTStatus('SNOOZED','nt-snoozed');
+    var mins=duration/60000;
+    updateNTInfo('🔕 Snoozed for '+mins+' minutes');
+  }else{
+    ntSnoozedUntil=0;
+    localStorage.removeItem('dinoclash-nt-snooze');
+    if(document.getElementById('ntEnable').checked){
+      updateNTStatus('ON','nt-active');
+    }
+    updateNTInfo();
+  }
+}
+
+function updateNTStatus(text,className){
+  var el=document.getElementById('ntStatus');
+  if(el){el.innerText=text;el.className='nt-status '+className}
+}
+
+function updateNTInfo(msg){
+  var el=document.getElementById('ntInfo');
+  if(!el)return;
+  if(msg){
+    el.innerText=msg;
+  }else{
+    if('Notification' in window){
+      if(Notification.permission==='granted'){
+        el.innerText='✅ Browser notifications enabled. You will receive alerts even when tab is inactive.';
+      }else if(Notification.permission==='denied'){
+        el.innerText='❌ Browser notifications blocked. Please enable in browser settings.';
+      }else{
+        el.innerText='💡 Click "Enable Browser Notifications" to receive alerts.';
+      }
+    }else{
+      el.innerText='⚠️ Browser does not support notifications.';
+    }
+  }
+}
+
+function requestNTPermission(){
+  if(!('Notification' in window)){
+    alert('This browser does not support notifications');
+    return;
+  }
+  Notification.requestPermission().then(function(perm){
+    updateNTInfo();
+    if(perm==='granted'){
+      new Notification('🦕 DinoClash',{
+        body:'Notifications enabled successfully!',
+        icon:'data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><text y="50" font-size="50">🦕</text></svg>'
+      });
+    }
+  });
+}
+
+function testNotification(){
+  notify('🧪 Test Notification','This is how alerts will look. All systems working!',false);
+}
+
+function notify(title,message,isError){
+  // Check if enabled
+  if(!document.getElementById('ntEnable').checked)return;
+  
+  // Check snooze
+  if(Date.now()<ntSnoozedUntil)return;
+  
+  // Cooldown check (prevent spam)
+  var key=title;
+  if(ntLastAlerts[key] && (Date.now()-ntLastAlerts[key])<ntCooldown)return;
+  ntLastAlerts[key]=Date.now();
+  
+  // Browser notification
+  if('Notification' in window && Notification.permission==='granted'){
+    try{
+      new Notification(title,{
+        body:message,
+        icon:'data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><text y="50" font-size="50">🦕</text></svg>',
+        tag:'dinoclash'
+      });
+    }catch(e){}
+  }
+  
+  // Sound alert
+  if(document.getElementById('ntSound').checked){
+    playBeep(isError);
+  }
+}
+
+function playBeep(isError){
+  try{
+    var ctx=new (window.AudioContext||window.webkitAudioContext)();
+    var osc=ctx.createOscillator();
+    var gain=ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value=isError?400:800;
+    gain.gain.value=0.1;
+    osc.start();
+    setTimeout(function(){osc.stop();ctx.close()},isError?300:150);
+  }catch(e){}
+}
+
+function showAlert(title,message,isWarning){
+  var el=document.getElementById('ntAlert');
+  if(!el)return;
+  document.getElementById('ntAlertTitle').innerText=title;
+  document.getElementById('ntAlertMsg').innerText=message;
+  el.className='nt-alert show'+(isWarning?' warning':'');
+}
+
+function hideAlert(){
+  var el=document.getElementById('ntAlert');
+  if(el)el.className='nt-alert';
+}
+
+// Check snooze status every 30 sec
+setInterval(function(){
+  if(ntSnoozedUntil>0 && Date.now()>=ntSnoozedUntil){
+    ntSnoozedUntil=0;
+    localStorage.removeItem('dinoclash-nt-snooze');
+    document.getElementById('ntSnooze').value='0';
+    if(document.getElementById('ntEnable').checked){
+      updateNTStatus('ON','nt-active');
+    }
+    updateNTInfo();
+  }
+},30000);
+
+// ═══════════════════════════════════════════════
 // DATA USAGE TRACKING
 // ═══════════════════════════════════════════════
-var duData={
-  session:{up:0,dn:0,startTime:Date.now()},
-  today:{up:0,dn:0,date:new Date().toDateString()},
-  month:{up:0,dn:0,month:new Date().getMonth()+'-'+new Date().getFullYear()}
-};
-
-function loadDU(){
-  try{
-    var saved=localStorage.getItem('dinoclash-du');
-    if(saved){
-      var d=JSON.parse(saved);
-      // Check if today changed
-      var today=new Date().toDateString();
-      if(d.today && d.today.date===today){
-        duData.today=d.today;
-      }else{
-        duData.today={up:0,dn:0,date:today};
-      }
-      // Check if month changed
-      var thisMonth=new Date().getMonth()+'-'+new Date().getFullYear();
-      if(d.month && d.month.month===thisMonth){
-        duData.month=d.month;
-      }else{
-        duData.month={up:0,dn:0,month:thisMonth};
-      }
-    }
-  }catch(e){}
-  updateDUDisplay();
-}
-
-function saveDU(){
-  try{
-    localStorage.setItem('dinoclash-du',JSON.stringify({
-      today:duData.today,
-      month:duData.month
-    }));
-  }catch(e){}
-}
-
-function addDU(up,dn){
-  if(up>0){
-    duData.session.up+=up;
-    duData.today.up+=up;
-    duData.month.up+=up;
-  }
-  if(dn>0){
-    duData.session.dn+=dn;
-    duData.today.dn+=dn;
-    duData.month.dn+=dn;
-  }
-}
-
-function updateDUDisplay(){
-  // Session
-  document.getElementById('duSessionUp').innerText=fb(duData.session.up);
-  document.getElementById('duSessionDn').innerText=fb(duData.session.dn);
-  document.getElementById('duSessionTotal').innerText=fb(duData.session.up+duData.session.dn);
-  var sinceDate=new Date(duData.session.startTime);
-  document.getElementById('duSessionSince').innerText='Started: '+sinceDate.toLocaleTimeString();
-  
-  // Today
-  document.getElementById('duTodayUp').innerText=fb(duData.today.up);
-  document.getElementById('duTodayDn').innerText=fb(duData.today.dn);
-  document.getElementById('duTodayTotal').innerText=fb(duData.today.up+duData.today.dn);
-  document.getElementById('duTodayDate').innerText=new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'});
-  
-  // Month
-  document.getElementById('duMonthUp').innerText=fb(duData.month.up);
-  document.getElementById('duMonthDn').innerText=fb(duData.month.dn);
-  document.getElementById('duMonthTotal').innerText=fb(duData.month.up+duData.month.dn);
-  document.getElementById('duMonthName').innerText=new Date().toLocaleDateString('en-US',{month:'long'});
-}
-
-function resetDU(type){
-  if(type==='all'){
-    if(!confirm('Reset ALL data usage? This cannot be undone.'))return;
-    duData.session={up:0,dn:0,startTime:Date.now()};
-    duData.today={up:0,dn:0,date:new Date().toDateString()};
-    duData.month={up:0,dn:0,month:new Date().getMonth()+'-'+new Date().getFullYear()};
-  }else if(type==='session'){
-    duData.session={up:0,dn:0,startTime:Date.now()};
-  }else if(type==='today'){
-    if(!confirm('Reset today\'s usage?'))return;
-    duData.today={up:0,dn:0,date:new Date().toDateString()};
-  }
-  saveDU();
-  updateDUDisplay();
-}
-
-// Check date change every minute (for daily rollover)
-setInterval(function(){
-  var today=new Date().toDateString();
-  if(duData.today.date!==today){
-    duData.today={up:0,dn:0,date:today};
-    saveDU();
-  }
-  var thisMonth=new Date().getMonth()+'-'+new Date().getFullYear();
-  if(duData.month.month!==thisMonth){
-    duData.month={up:0,dn:0,month:thisMonth};
-    saveDU();
-  }
-},60000);
-
-// Save every 30 seconds
+var duData={session:{up:0,dn:0,startTime:Date.now()},today:{up:0,dn:0,date:new Date().toDateString()},month:{up:0,dn:0,month:new Date().getMonth()+'-'+new Date().getFullYear()}};
+function loadDU(){try{var saved=localStorage.getItem('dinoclash-du');if(saved){var d=JSON.parse(saved);var today=new Date().toDateString();if(d.today && d.today.date===today){duData.today=d.today}else{duData.today={up:0,dn:0,date:today}}var thisMonth=new Date().getMonth()+'-'+new Date().getFullYear();if(d.month && d.month.month===thisMonth){duData.month=d.month}else{duData.month={up:0,dn:0,month:thisMonth}}}}catch(e){}updateDUDisplay()}
+function saveDU(){try{localStorage.setItem('dinoclash-du',JSON.stringify({today:duData.today,month:duData.month}))}catch(e){}}
+function addDU(up,dn){if(up>0){duData.session.up+=up;duData.today.up+=up;duData.month.up+=up}if(dn>0){duData.session.dn+=dn;duData.today.dn+=dn;duData.month.dn+=dn}}
+function updateDUDisplay(){document.getElementById('duSessionUp').innerText=fb(duData.session.up);document.getElementById('duSessionDn').innerText=fb(duData.session.dn);document.getElementById('duSessionTotal').innerText=fb(duData.session.up+duData.session.dn);var sinceDate=new Date(duData.session.startTime);document.getElementById('duSessionSince').innerText='Started: '+sinceDate.toLocaleTimeString();document.getElementById('duTodayUp').innerText=fb(duData.today.up);document.getElementById('duTodayDn').innerText=fb(duData.today.dn);document.getElementById('duTodayTotal').innerText=fb(duData.today.up+duData.today.dn);document.getElementById('duTodayDate').innerText=new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'});document.getElementById('duMonthUp').innerText=fb(duData.month.up);document.getElementById('duMonthDn').innerText=fb(duData.month.dn);document.getElementById('duMonthTotal').innerText=fb(duData.month.up+duData.month.dn);document.getElementById('duMonthName').innerText=new Date().toLocaleDateString('en-US',{month:'long'})}
+function resetDU(type){if(type==='all'){if(!confirm('Reset ALL data usage? This cannot be undone.'))return;duData.session={up:0,dn:0,startTime:Date.now()};duData.today={up:0,dn:0,date:new Date().toDateString()};duData.month={up:0,dn:0,month:new Date().getMonth()+'-'+new Date().getFullYear()}}else if(type==='session'){duData.session={up:0,dn:0,startTime:Date.now()}}else if(type==='today'){if(!confirm('Reset today\'s usage?'))return;duData.today={up:0,dn:0,date:new Date().toDateString()}}saveDU();updateDUDisplay()}
+setInterval(function(){var today=new Date().toDateString();if(duData.today.date!==today){duData.today={up:0,dn:0,date:today};saveDU()}var thisMonth=new Date().getMonth()+'-'+new Date().getFullYear();if(duData.month.month!==thisMonth){duData.month={up:0,dn:0,month:thisMonth};saveDU()}},60000);
 setInterval(saveDU,30000);
-
-// Save on page unload
 window.addEventListener('beforeunload',saveDU);
 
 // ═══════════════════════════════════════════════
-// WEBSOCKET TRAFFIC (updated with DU tracking)
+// WEBSOCKET TRAFFIC
 // ═══════════════════════════════════════════════
-function sw(){
-  try{
-    var ws=new WebSocket('ws://'+location.hostname+':9595/traffic?token='+S);
-    ws.onmessage=function(e){
-      var d=JSON.parse(e.data);
-      document.getElementById('up').innerText=fb(d.up)+'/s';
-      document.getElementById('dn').innerText=fb(d.down)+'/s';
-      ua.push(d.up);
-      da.push(d.down);
-      if(ua.length>60)ua.shift();
-      if(da.length>60)da.shift();
-      dr();
-      // Track data usage (traffic per second)
-      addDU(d.up,d.down);
-      updateDUDisplay();
-    };
-    ws.onclose=function(){setTimeout(sw,3000)};
-  }catch(x){setTimeout(sw,5000)}
-}
-
+function sw(){try{var ws=new WebSocket('ws://'+location.hostname+':9595/traffic?token='+S);ws.onmessage=function(e){var d=JSON.parse(e.data);document.getElementById('up').innerText=fb(d.up)+'/s';document.getElementById('dn').innerText=fb(d.down)+'/s';ua.push(d.up);da.push(d.down);if(ua.length>60)ua.shift();if(da.length>60)da.shift();dr();addDU(d.up,d.down);updateDUDisplay()};ws.onclose=function(){setTimeout(sw,3000)}}catch(x){setTimeout(sw,5000)}}
 function dr(){var c=document.getElementById('cv');if(!c)return;var x=c.getContext('2d');var dpr=window.devicePixelRatio||1;if(c.width!==c.offsetWidth*dpr){c.width=c.offsetWidth*dpr;c.height=c.offsetHeight*dpr;x.scale(dpr,dpr)}var w=c.offsetWidth,h=c.offsetHeight;x.clearRect(0,0,w,h);var mx=Math.max(Math.max.apply(null,ua.concat([1])),Math.max.apply(null,da.concat([1])));function ln(a,col){if(a.length<2)return;x.beginPath();x.strokeStyle=col;x.lineWidth=2;for(var i=0;i<a.length;i++){var px=(i/59)*w,py=h-(a[i]/mx)*(h-8)-4;if(i===0)x.moveTo(px,py);else x.lineTo(px,py)}x.stroke()}ln(ua,'#6366f1');ln(da,'#22c55e')}
 window.addEventListener('resize',function(){setTimeout(dr,100)});
 function pfd(d){if(!d||d===0)return'<span class="t">-</span>';if(d<200)return'<span class="f">'+d+'ms</span>';if(d<500)return'<span class="m">'+d+'ms</span>';return'<span class="s">'+d+'ms</span>'}
@@ -719,105 +850,70 @@ function lr(){var b=document.getElementById('llb');var fl=lfi==='all'?ll:ll.filt
 function lw(){try{var ws=new WebSocket('ws://'+location.hostname+':9595/logs?token='+S+'&level=debug');ws.onmessage=function(e){var d=JSON.parse(e.data);ll.push(d);if(ll.length>500)ll.shift();lr()};ws.onclose=function(){setTimeout(lw,3000)}}catch(e){setTimeout(lw,5000)}}
 
 // ═══════════════════════════════════════════════
-// AUTO PROXY TESTING
+// AUTO PROXY TESTING (with notifications)
 // ═══════════════════════════════════════════════
-var atTimer=null,atRunning=false;
-
-function loadATSettings(){
-  var enable=localStorage.getItem('dinoclash-at-enable')==='true';
-  var autoSelect=localStorage.getItem('dinoclash-at-autoselect')==='true';
-  var interval=localStorage.getItem('dinoclash-at-interval')||'300000';
-  document.getElementById('atEnable').checked=enable;
-  document.getElementById('atAutoSelect').checked=autoSelect;
-  document.getElementById('atInterval').value=interval;
-  if(enable)startAT();
-}
-
-function saveATSettings(){
-  localStorage.setItem('dinoclash-at-enable',document.getElementById('atEnable').checked);
-  localStorage.setItem('dinoclash-at-autoselect',document.getElementById('atAutoSelect').checked);
-  localStorage.setItem('dinoclash-at-interval',document.getElementById('atInterval').value);
-}
-
-function toggleAT(){
-  saveATSettings();
-  if(document.getElementById('atEnable').checked){startAT()}else{stopAT()}
-}
-
-function startAT(){
-  atRunning=true;
-  updateATStatus('ON','at-active');
-  runAutoTest();
-  var interval=parseInt(document.getElementById('atInterval').value)||300000;
-  atTimer=setInterval(runAutoTest,interval);
-}
-
-function stopAT(){
-  atRunning=false;
-  updateATStatus('OFF','at-inactive');
-  if(atTimer){clearInterval(atTimer);atTimer=null}
-}
-
-function restartAT(){
-  stopAT();
-  document.getElementById('atEnable').checked=true;
-  startAT();
-}
-
-function updateATStatus(text,className){
-  var el=document.getElementById('atStatus');
-  if(el){el.innerText=text;el.className='at-status '+className}
-}
-
-function runManualTest(){
-  updateATStatus('TESTING...','at-testing');
-  runAutoTest();
-}
-
+var atTimer=null,atRunning=false,lastProxyCount=null;
+function loadATSettings(){var enable=localStorage.getItem('dinoclash-at-enable')==='true';var autoSelect=localStorage.getItem('dinoclash-at-autoselect')==='true';var interval=localStorage.getItem('dinoclash-at-interval')||'300000';document.getElementById('atEnable').checked=enable;document.getElementById('atAutoSelect').checked=autoSelect;document.getElementById('atInterval').value=interval;if(enable)startAT()}
+function saveATSettings(){localStorage.setItem('dinoclash-at-enable',document.getElementById('atEnable').checked);localStorage.setItem('dinoclash-at-autoselect',document.getElementById('atAutoSelect').checked);localStorage.setItem('dinoclash-at-interval',document.getElementById('atInterval').value)}
+function toggleAT(){saveATSettings();if(document.getElementById('atEnable').checked){startAT()}else{stopAT()}}
+function startAT(){atRunning=true;updateATStatus('ON','at-active');runAutoTest();var interval=parseInt(document.getElementById('atInterval').value)||300000;atTimer=setInterval(runAutoTest,interval)}
+function stopAT(){atRunning=false;updateATStatus('OFF','at-inactive');if(atTimer){clearInterval(atTimer);atTimer=null}}
+function restartAT(){stopAT();document.getElementById('atEnable').checked=true;startAT()}
+function updateATStatus(text,className){var el=document.getElementById('atStatus');if(el){el.innerText=text;el.className='at-status '+className}}
+function runManualTest(){updateATStatus('TESTING...','at-testing');runAutoTest()}
 function runAutoTest(){
-  fetch(A+'/proxies',{headers:H})
-    .then(function(r){return r.json()})
-    .then(function(d){
-      if(!d||!d.proxies){updateATStatus('NO PROXY','at-inactive');return}
-      var testPromises=[];
-      var proxyNames=[];
-      Object.keys(d.proxies).forEach(function(n){
-        var t=d.proxies[n].type;
-        if(['Selector','URLTest','Fallback','LoadBalance','Direct','Reject','Compatible'].indexOf(t)<0){
-          proxyNames.push(n);
-          testPromises.push(
-            fetch(A+'/proxies/'+encodeURIComponent(n)+'/delay?timeout=5000&url=http://www.gstatic.com/generate_204',{headers:H})
-              .then(function(r){return r.json()})
-              .then(function(res){return{name:n,delay:res.delay||0}})
-              .catch(function(){return{name:n,delay:0}})
-          );
-        }
-      });
-      if(testPromises.length===0){updateATStatus('NO PROXY','at-inactive');return}
-      Promise.all(testPromises).then(function(results){
-        var valid=results.filter(function(r){return r.delay>0});
-        valid.sort(function(a,b){return a.delay-b.delay});
-        var now=new Date().toLocaleTimeString();
-        document.getElementById('atLast').innerText='Last test: '+now+' ('+valid.length+'/'+results.length+' active)';
-        if(atRunning){updateATStatus('ON','at-active')}else{updateATStatus('DONE','at-active');setTimeout(function(){if(!atRunning)updateATStatus('OFF','at-inactive')},3000)}
-        if(document.getElementById('atAutoSelect').checked && valid.length>0){
-          var fastest=valid[0].name;
-          Object.keys(d.proxies).forEach(function(g){
-            if(d.proxies[g].type==='Selector' && d.proxies[g].all && d.proxies[g].all.indexOf(fastest)>=0){
-              fetch(A+'/proxies/'+encodeURIComponent(g),{method:'PUT',headers:H,body:JSON.stringify({name:fastest})}).catch(function(){});
-            }
-          });
-        }
-        if(document.getElementById('pg-proxy').classList.contains('show')){setTimeout(pl,500)}
-      });
-    })
-    .catch(function(){updateATStatus('ERROR','at-inactive')});
+  fetch(A+'/proxies',{headers:H}).then(function(r){return r.json()}).then(function(d){
+    if(!d||!d.proxies){updateATStatus('NO PROXY','at-inactive');return}
+    var testPromises=[];
+    var proxyNames=[];
+    Object.keys(d.proxies).forEach(function(n){
+      var t=d.proxies[n].type;
+      if(['Selector','URLTest','Fallback','LoadBalance','Direct','Reject','Compatible'].indexOf(t)<0){
+        proxyNames.push(n);
+        testPromises.push(fetch(A+'/proxies/'+encodeURIComponent(n)+'/delay?timeout=5000&url=http://www.gstatic.com/generate_204',{headers:H}).then(function(r){return r.json()}).then(function(res){return{name:n,delay:res.delay||0}}).catch(function(){return{name:n,delay:0}}));
+      }
+    });
+    if(testPromises.length===0){updateATStatus('NO PROXY','at-inactive');return}
+    Promise.all(testPromises).then(function(results){
+      var valid=results.filter(function(r){return r.delay>0});
+      valid.sort(function(a,b){return a.delay-b.delay});
+      var now=new Date().toLocaleTimeString();
+      document.getElementById('atLast').innerText='Last test: '+now+' ('+valid.length+'/'+results.length+' active)';
+      
+      // Notification: all proxies dead
+      if(results.length>0 && valid.length===0){
+        notify('🔴 All Proxies Down','No working proxy found! Check your config.',true);
+        showAlert('🔴 All Proxies Down','No working proxy found. Check your configuration or upload new YAML.',false);
+      }
+      // Notification: proxy count drop
+      else if(lastProxyCount!==null && valid.length<lastProxyCount*0.5 && valid.length>0){
+        notify('⚠️ Proxy Count Dropped','Only '+valid.length+'/'+results.length+' proxies working.',false);
+      }
+      // Notification: slow proxy
+      else if(valid.length>0 && valid[0].delay>500){
+        notify('🐌 Slow Proxies','Fastest proxy is '+valid[0].delay+'ms. Consider changing.',false);
+      }
+      lastProxyCount=valid.length;
+      
+      if(atRunning){updateATStatus('ON','at-active')}else{updateATStatus('DONE','at-active');setTimeout(function(){if(!atRunning)updateATStatus('OFF','at-inactive')},3000)}
+      if(document.getElementById('atAutoSelect').checked && valid.length>0){
+        var fastest=valid[0].name;
+        Object.keys(d.proxies).forEach(function(g){
+          if(d.proxies[g].type==='Selector' && d.proxies[g].all && d.proxies[g].all.indexOf(fastest)>=0){
+            fetch(A+'/proxies/'+encodeURIComponent(g),{method:'PUT',headers:H,body:JSON.stringify({name:fastest})}).catch(function(){});
+          }
+        });
+      }
+      if(document.getElementById('pg-proxy').classList.contains('show')){setTimeout(pl,500)}
+    });
+  }).catch(function(){updateATStatus('ERROR','at-inactive')});
 }
 
 // Init
 chk();gc();gn();sw();lw();
 loadATSettings();
 loadDU();
+loadNTSettings();
 setInterval(chk,10000);setInterval(gc,10000);setInterval(gn,5000);
 setInterval(function(){if(document.getElementById('pg-conn').classList.contains('show'))cnl()},3000);
 setInterval(function(){if(document.getElementById('pg-proxy').classList.contains('show'))pl()},15000);
