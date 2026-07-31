@@ -3,11 +3,8 @@ echo "Content-Type: application/json"
 echo ""
 
 ACTION=$(echo "$QUERY_STRING" | sed -n 's/.*action=\([a-z_]*\).*/\1/p')
-MAC=$(echo "$QUERY_STRING" | sed -n 's/.*mac=\([^&]*\).*/\1/p')
-IP=$(echo "$QUERY_STRING" | sed -n 's/.*ip=\([^&]*\).*/\1/p')
 TRANSPARENT_FILE="/etc/mihomo/transparent"
 ENABLED_FILE="/etc/mihomo/enabled"
-BYPASS_FILE="/etc/mihomo/bypass_macs"
 
 case "$ACTION" in
   status)
@@ -61,63 +58,6 @@ case "$ACTION" in
     echo "0" > $TRANSPARENT_FILE
     /etc/init.d/mihomo restart >/dev/null 2>&1
     echo "{\"ok\":true,\"transparent\":0}"
-    ;;
-
-  bypass_list)
-    mkdir -p /etc/mihomo
-    touch $BYPASS_FILE
-    
-    # Build JSON using temp file (subshell issue fix)
-    TMPJSON="/tmp/bypass_$$.json"
-    echo -n "[" > $TMPJSON
-    FIRST=1
-    
-    # Read ARP + DHCP together
-    awk 'NR>1 && $3=="0x2" && $4!="00:00:00:00:00:00" {print $1"|"$4}' /proc/net/arp 2>/dev/null | while IFS='|' read CIP CMAC; do
-      [ -z "$CMAC" ] && continue
-      
-      # Get hostname from DHCP leases
-      HOST=$(awk -v m="$CMAC" 'tolower($2)==tolower(m){print $4; exit}' /tmp/dhcp.leases 2>/dev/null)
-      [ -z "$HOST" ] || [ "$HOST" = "*" ] && HOST="Unknown"
-      
-      # Check bypass status
-      BYPASSED="false"
-      grep -qi "^$CMAC$" $BYPASS_FILE 2>/dev/null && BYPASSED="true"
-      
-      # Append to JSON
-      if [ "$FIRST" = "1" ]; then
-        echo -n "{\"ip\":\"$CIP\",\"mac\":\"$CMAC\",\"host\":\"$HOST\",\"bypass\":$BYPASSED}" >> $TMPJSON
-        echo "0" > /tmp/bypass_first_$$
-      else
-        echo -n ",{\"ip\":\"$CIP\",\"mac\":\"$CMAC\",\"host\":\"$HOST\",\"bypass\":$BYPASSED}" >> $TMPJSON
-      fi
-      FIRST=0
-    done
-    
-    echo -n "]" >> $TMPJSON
-    cat $TMPJSON
-    rm -f $TMPJSON /tmp/bypass_first_$$
-    echo ""
-    ;;
-
-  bypass_add)
-    [ -z "$MAC" ] && echo '{"ok":false,"error":"no_mac"}' && exit 0
-    mkdir -p /etc/mihomo
-    touch $BYPASS_FILE
-    grep -qi "^$MAC$" $BYPASS_FILE || echo "$MAC" >> $BYPASS_FILE
-    nft add element inet mihomo bypass_mac { $MAC } 2>/dev/null || true
-    [ -n "$IP" ] && nft add element inet mihomo bypass_ip { $IP } 2>/dev/null || true
-    logger -t dinoclash "Bypass added: MAC=$MAC IP=$IP"
-    echo "{\"ok\":true,\"mac\":\"$MAC\"}"
-    ;;
-
-  bypass_remove)
-    [ -z "$MAC" ] && echo '{"ok":false,"error":"no_mac"}' && exit 0
-    [ -f "$BYPASS_FILE" ] && sed -i "/^$MAC$/Id" $BYPASS_FILE
-    nft delete element inet mihomo bypass_mac { $MAC } 2>/dev/null || true
-    [ -n "$IP" ] && nft delete element inet mihomo bypass_ip { $IP } 2>/dev/null || true
-    logger -t dinoclash "Bypass removed: MAC=$MAC"
-    echo "{\"ok\":true,\"mac\":\"$MAC\"}"
     ;;
 
   update_geo)
