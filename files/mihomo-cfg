@@ -1,6 +1,7 @@
 #!/bin/sh
 # ═══════════════════════════════════════════════
 # 🦕 DinoClash - Ultra Speed YAML Auto-Optimizer
+# With Chat Apps Speed Fix
 # Developer: Jahid Hasan Shuvo
 # ═══════════════════════════════════════════════
 
@@ -10,7 +11,6 @@ echo ""
 if [ "$REQUEST_METHOD" = "POST" ]; then
     TMP="/tmp/mhcfg_$$.yaml"
     
-    # Cleanup on exit
     trap "rm -f ${TMP}.opt ${TMP}.lazy ${TMP}.new /tmp/mhcfg_err.log" EXIT
     
     cat > "$TMP"
@@ -69,7 +69,7 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
         add_if_missing "allow-lan:" "allow-lan: true"
         add_if_missing "bind-address:" "bind-address: '*'"
         add_if_missing "mode:" "mode: rule"
-        add_if_missing "log-level:" "log-level: info"
+        add_if_missing "log-level:" "log-level: warning"
         add_if_missing "ipv6:" "ipv6: false"
         
         grep -q '^external-controller:' "$TMP" || echo 'external-controller: 0.0.0.0:9595' >> "$TMP"
@@ -81,8 +81,8 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
         grep -q '^global-client-fingerprint:' "$TMP" || echo 'global-client-fingerprint: chrome' >> "$TMP"
         grep -q '^tcp-concurrent:' "$TMP" || echo 'tcp-concurrent: true' >> "$TMP"
         grep -q '^unified-delay:' "$TMP" || echo 'unified-delay: true' >> "$TMP"
-        grep -q '^keep-alive-interval:' "$TMP" || echo 'keep-alive-interval: 10' >> "$TMP"
-        grep -q '^keep-alive-idle:' "$TMP" || echo 'keep-alive-idle: 10' >> "$TMP"
+        grep -q '^keep-alive-interval:' "$TMP" || echo 'keep-alive-interval: 15' >> "$TMP"
+        grep -q '^keep-alive-idle:' "$TMP" || echo 'keep-alive-idle: 600' >> "$TMP"
         
         # STEP 3: PROFILE
         if ! grep -q '^profile:' "$TMP"; then
@@ -112,10 +112,18 @@ sniffer:
       ports: [443, 8443]
     QUIC:
       ports: [443, 8443]
+  skip-domain:
+    - "Mijia Cloud"
+    - "+.push.apple.com"
+    - "+.linkedin.com"
+    - "+.discord.com"
+    - "+.discordapp.com"
+    - "+.whatsapp.net"
+    - "+.messenger.com"
 SEOF
         fi
         
-        # STEP 5: TUN (disabled for redirect mode)
+        # STEP 5: TUN (disabled)
         if ! grep -q '^tun:' "$TMP"; then
             cat >> "$TMP" << 'TEOF'
 
@@ -136,7 +144,7 @@ TEOF
             sed -i '/^tun:/,/^[a-z]/ s/^  enable: true$/  enable: false/' "$TMP"
         fi
         
-        # STEP 6: DNS (redir-host + mobile fix)
+        # STEP 6: DNS (with chat apps fix)
         if ! grep -q '^dns:' "$TMP"; then
             cat >> "$TMP" << 'DEOF'
 
@@ -145,39 +153,76 @@ dns:
   listen: 0.0.0.0:1053
   ipv6: false
   enhanced-mode: redir-host
+  cache-algorithm: arc
+  use-hosts: true
+  use-system-hosts: true
   default-nameserver:
-    - 223.5.5.5
     - 1.1.1.1
     - 8.8.8.8
+    - 223.5.5.5
     - 114.114.114.114
   nameserver:
     - https://1.1.1.1/dns-query
     - https://dns.google/dns-query
+    - https://cloudflare-dns.com/dns-query
   fallback:
     - tls://1.1.1.1:853
     - tls://dns.google:853
   nameserver-policy:
+    '+.linkedin.com': '1.1.1.1'
+    '+.discord.com': '1.1.1.1'
+    '+.discordapp.com': '1.1.1.1'
+    '+.discord.gg': '1.1.1.1'
+    '+.discordapp.net': '1.1.1.1'
+    '+.whatsapp.com': '1.1.1.1'
+    '+.whatsapp.net': '1.1.1.1'
+    '+.messenger.com': '1.1.1.1'
+    '+.facebook.com': '1.1.1.1'
+    '+.instagram.com': '1.1.1.1'
+    '+.telegram.org': '1.1.1.1'
     '+.google.com': 'https://dns.google/dns-query'
-    '+.facebook.com': 'https://1.1.1.1/dns-query'
     '+.youtube.com': 'https://dns.google/dns-query'
 DEOF
         else
             sed -i 's/enhanced-mode: fake-ip/enhanced-mode: redir-host/g' "$TMP"
             sed -i 's/prefer-h3: true/prefer-h3: false/g' "$TMP"
-            if ! grep -q "114.114.114.114" "$TMP"; then
-                sed -i '/default-nameserver:/a\    - 114.114.114.114' "$TMP"
+            if ! grep -q "1.1.1.1" "$TMP"; then
+                sed -i '/default-nameserver:/a\    - 1.1.1.1' "$TMP"
             fi
         fi
         
-        # STEP 7: LAN SAFETY
+        # STEP 7: LAN SAFETY + CHAT APPS + REMOTE DESKTOP RULES
         LAN_IP=$(uci -q get network.lan.ipaddr || echo "192.168.1.1")
         LAN_NET=$(echo "$LAN_IP" | awk -F. '{print $1"."$2"."$3".0/24"}')
         
         if grep -q '^rules:' "$TMP"; then
             sed -i '/192.168.87.0\/24,DIRECT/d' "$TMP"
             sed -i '/192.168.64.0\/24,DIRECT/d' "$TMP"
-            if ! grep -q "$LAN_NET,DIRECT" "$TMP"; then
+            
+            # Add speed rules if not present
+            if ! grep -q "linkedin.com,DIRECT" "$TMP"; then
                 sed -i "/^rules:/a\\
+  - 'DOMAIN-SUFFIX,linkedin.com,DIRECT'\\
+  - 'DOMAIN-SUFFIX,licdn.com,DIRECT'\\
+  - 'DOMAIN-KEYWORD,linkedin,DIRECT'\\
+  - 'DOMAIN-SUFFIX,discord.com,DIRECT'\\
+  - 'DOMAIN-SUFFIX,discord.gg,DIRECT'\\
+  - 'DOMAIN-SUFFIX,discordapp.com,DIRECT'\\
+  - 'DOMAIN-SUFFIX,discordapp.net,DIRECT'\\
+  - 'DOMAIN-KEYWORD,discord,DIRECT'\\
+  - 'DOMAIN-SUFFIX,whatsapp.com,DIRECT'\\
+  - 'DOMAIN-SUFFIX,whatsapp.net,DIRECT'\\
+  - 'DOMAIN-SUFFIX,messenger.com,DIRECT'\\
+  - 'DOMAIN-SUFFIX,telegram.org,DIRECT'\\
+  - 'DOMAIN-SUFFIX,slack.com,DIRECT'\\
+  - 'DOMAIN-SUFFIX,zoom.us,DIRECT'\\
+  - 'DOMAIN-SUFFIX,teams.microsoft.com,DIRECT'\\
+  - 'DOMAIN-SUFFIX,ultraviewer.net,DIRECT'\\
+  - 'DOMAIN-KEYWORD,ultraviewer,DIRECT'\\
+  - 'DOMAIN-SUFFIX,anydesk.com,DIRECT'\\
+  - 'DOMAIN-KEYWORD,anydesk,DIRECT'\\
+  - 'DOMAIN-SUFFIX,teamviewer.com,DIRECT'\\
+  - 'DOMAIN-KEYWORD,teamviewer,DIRECT'\\
   - 'IP-CIDR,$LAN_NET,DIRECT,no-resolve'\\
   - 'IP-CIDR,192.168.0.0/16,DIRECT,no-resolve'\\
   - 'IP-CIDR,10.0.0.0/8,DIRECT,no-resolve'\\
