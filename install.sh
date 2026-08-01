@@ -3,7 +3,6 @@
 # 🦕 DinoClash for OpenWrt - Universal Installer
 # Repo: https://github.com/jahid421/DinoClash-openwrt
 # Developer: Jahid Hasan Shuvo
-# Supports: OpenWrt v21 to v25+ | All Architectures
 # ═══════════════════════════════════════════════
 
 REPO="https://raw.githubusercontent.com/jahid421/DinoClash-openwrt/main"
@@ -14,15 +13,10 @@ echo ""
 echo "╔══════════════════════════════════════╗"
 echo "║  🦕 DinoClash for OpenWrt            ║"
 echo "║  Auto-bypass (Redirect Mode)         ║"
-echo "║  Universal - All Architectures       ║"
-echo "║  Supports: v21 to v25+               ║"
 echo "║  Developer: Jahid Hasan Shuvo        ║"
 echo "╚══════════════════════════════════════╝"
 echo ""
 
-# ═══════════════════════════════════════════════
-# CHECK OPENWRT
-# ═══════════════════════════════════════════════
 if [ ! -f /etc/openwrt_release ]; then
     echo "❌ ERROR: This script only works on OpenWrt!"
     exit 1
@@ -32,30 +26,22 @@ echo "[✓] OpenWrt detected"
 OWRT_VER=$(. /etc/openwrt_release 2>/dev/null; echo "$DISTRIB_RELEASE")
 echo "    Version: $OWRT_VER"
 
-# ═══════════════════════════════════════════════
-# DETECT PACKAGE MANAGER (opkg v21-v24 / apk v25+)
-# ═══════════════════════════════════════════════
 if command -v apk >/dev/null 2>&1; then
     PKG="apk"
     PKG_UPDATE="apk update"
     PKG_INSTALL="apk add"
-    echo "[✓] Package manager: apk (v25+)"
 elif command -v opkg >/dev/null 2>&1; then
     PKG="opkg"
     PKG_UPDATE="opkg update"
     PKG_INSTALL="opkg install"
-    echo "[✓] Package manager: opkg"
 else
-    echo "❌ ERROR: No package manager found!"
+    echo "❌ No package manager found!"
     exit 1
 fi
+echo "[✓] Package manager: $PKG"
 
-# ═══════════════════════════════════════════════
-# AUTO-INSTALL CURL
-# ═══════════════════════════════════════════════
 USE_WGET=0
 if ! command -v curl >/dev/null 2>&1; then
-    echo "[*] curl not found, installing..."
     $PKG_UPDATE >/dev/null 2>&1 || true
     $PKG_INSTALL curl ca-bundle ca-certificates >/dev/null 2>&1 || true
 fi
@@ -64,9 +50,8 @@ if command -v curl >/dev/null 2>&1; then
     USE_WGET=0
 elif command -v wget >/dev/null 2>&1; then
     USE_WGET=1
-    echo "[!] Using wget instead of curl"
 else
-    echo "❌ ERROR: Neither curl nor wget available!"
+    echo "❌ Need curl or wget!"
     exit 1
 fi
 
@@ -80,12 +65,8 @@ dl() {
 
 echo "[✓] Download tool ready"
 
-# ═══════════════════════════════════════════════
-# ARCHITECTURE DETECTION
-# ═══════════════════════════════════════════════
 OWRT_ARCH=$(. /etc/openwrt_release 2>/dev/null; echo "$DISTRIB_ARCH")
 UNAME_ARCH=$(uname -m)
-
 echo "[*] Detecting architecture..."
 echo "    OpenWrt:  $OWRT_ARCH"
 echo "    uname -m: $UNAME_ARCH"
@@ -114,49 +95,23 @@ M=$(detect_arch "$A")
 [ -z "$M" ] && M=$(detect_arch "$UNAME_ARCH")
 
 if [ -z "$M" ]; then
-    echo "❌ ERROR: Cannot detect architecture!"
-    echo "   Report: https://github.com/jahid421/DinoClash-openwrt/issues"
+    echo "❌ Cannot detect architecture!"
     exit 1
 fi
-
 echo "[✓] Architecture: $M"
 
-# ═══════════════════════════════════════════════
-# SPACE CHECK
-# ═══════════════════════════════════════════════
-AVAIL=$(df / 2>/dev/null | awk 'NR==2{print $4}')
-AVAIL=${AVAIL:-0}
-if [ "$AVAIL" -gt 0 ] && [ "$AVAIL" -lt 30000 ] 2>/dev/null; then
-    echo ""
-    echo "⚠️  WARNING: Low disk space ($((AVAIL/1024)) MB free)"
-    echo "   Required: ~40 MB"
-    echo "   Small routers need USB extroot!"
-    echo "   Continue anyway? (5 sec to cancel)"
-    sleep 5
-fi
-
-# ═══════════════════════════════════════════════
-# INSTALL DEPENDENCIES
-# ═══════════════════════════════════════════════
 echo "[*] Installing dependencies..."
 $PKG_UPDATE >/dev/null 2>&1 || true
-
 for p in curl ca-bundle ca-certificates ip-full kmod-tun kmod-nft-tproxy coreutils-nohup; do
     $PKG_INSTALL $p >/dev/null 2>&1 || true
 done
-
-# LuCI compat packages only for opkg (v21-v24)
 if [ "$PKG" = "opkg" ]; then
     for p in luci-compat luci-lib-ipkg luci-lib-nixio; do
         $PKG_INSTALL $p >/dev/null 2>&1 || true
     done
 fi
+echo "[✓] Dependencies installed"
 
-echo "[✓] Dependencies installed (via $PKG)"
-
-# ═══════════════════════════════════════════════
-# DOWNLOAD MIHOMO BINARY
-# ═══════════════════════════════════════════════
 echo "[*] Downloading DinoClash core ($M)..."
 cd /tmp && rm -f mihomo.gz mihomo
 
@@ -169,70 +124,33 @@ download_and_verify() {
     gzip -t mihomo.gz 2>/dev/null || return 1
     gunzip -f mihomo.gz 2>/dev/null || return 1
     chmod +x mihomo
-    if ./mihomo -v >/dev/null 2>&1; then
-        return 0
-    else
-        rm -f mihomo mihomo.gz
-        return 1
-    fi
+    ./mihomo -v >/dev/null 2>&1 || return 1
+    return 0
 }
 
 if download_and_verify "$M"; then
     echo "[✓] Downloaded: $M"
 else
-    echo "[!] $M failed, trying alternatives..."
-    case "$M" in
-        mips-softfloat) ALTS="mipsle-softfloat" ;;
-        mipsle-softfloat) ALTS="mips-softfloat" ;;
-        armv7) ALTS="armv6 armv5" ;;
-        armv6) ALTS="armv7 armv5" ;;
-        armv5) ALTS="armv7" ;;
-        arm64) ALTS="armv7" ;;
-        amd64-compatible) ALTS="386" ;;
-        *) ALTS="amd64-compatible arm64 mipsle-softfloat mips-softfloat" ;;
-    esac
-    FOUND=0
-    for ALT in $ALTS; do
-        if download_and_verify "$ALT"; then
-            echo "[✓] Alternative worked: $ALT"
-            M="$ALT"
-            FOUND=1
-            break
-        fi
-    done
-    if [ "$FOUND" = "0" ]; then
-        echo ""
-        echo "❌ ERROR: No compatible binary found!"
-        echo "   Report: https://github.com/jahid421/DinoClash-openwrt/issues"
-        exit 1
-    fi
+    echo "❌ Download failed"
+    exit 1
 fi
 
 mv mihomo /usr/bin/mihomo
 echo "[✓] DinoClash core installed"
 
-# ═══════════════════════════════════════════════
-# SETUP DIRECTORIES & STATE
-# ═══════════════════════════════════════════════
 mkdir -p $D/profiles $D/providers $D/ruleset $D/ui $D/scripts
 
 # IMPORTANT: Service disabled by default (no internet break)
 echo "0" > $D/transparent
 echo "0" > $D/enabled
 
-# ═══════════════════════════════════════════════
-# DOWNLOAD GEOIP
-# ═══════════════════════════════════════════════
-echo "[*] Downloading GeoIP databases..."
+echo "[*] Downloading GeoIP..."
 cd $D
 dl "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip-lite.dat" geoip.dat 2>/dev/null || true
 dl "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat" geosite.dat 2>/dev/null || true
 dl "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/country-lite.mmdb" Country.mmdb 2>/dev/null || true
 echo "[✓] GeoIP ready"
 
-# ═══════════════════════════════════════════════
-# DOWNLOAD DASHBOARD
-# ═══════════════════════════════════════════════
 echo "[*] Downloading dashboard..."
 cd /tmp && rm -f ui.tgz
 dl "https://github.com/MetaCubeX/metacubexd/releases/latest/download/compressed-dist.tgz" ui.tgz 2>/dev/null || true
@@ -245,14 +163,8 @@ if [ -f /tmp/ui.tgz ] && [ -s /tmp/ui.tgz ]; then
     fi
     rm -f ui.tgz
     echo "[✓] Dashboard installed"
-else
-    echo "[!] Dashboard download failed, skipping"
-    rm -f ui.tgz
 fi
 
-# ═══════════════════════════════════════════════
-# DOWNLOAD DINOCLASH PANEL
-# ═══════════════════════════════════════════════
 echo "[*] Downloading DinoClash panel..."
 dl "$REPO/files/mihomo.init" /etc/init.d/mihomo
 chmod +x /etc/init.d/mihomo
@@ -264,15 +176,11 @@ dl "$REPO/files/mihomo-cfg" /www/cgi-bin/mihomo-cfg
 dl "$REPO/files/mihomo-sub" /www/cgi-bin/mihomo-sub
 chmod +x /www/cgi-bin/mihomo-*
 
-# LuCI Lua controller (v21-v24)
 mkdir -p /usr/lib/lua/luci/controller
 dl "$REPO/files/mihomo.lua" /usr/lib/lua/luci/controller/mihomo.lua
-
-# LuCI view
 mkdir -p /usr/lib/lua/luci/view/mihomo
 dl "$REPO/files/main.htm" /usr/lib/lua/luci/view/mihomo/main.htm
 
-# v25+ ucode menu support
 if [ -d /usr/share/luci/menu.d ]; then
     cat > /usr/share/luci/menu.d/luci-app-dinoclash.json << 'JSONEOF'
 {
@@ -286,25 +194,14 @@ if [ -d /usr/share/luci/menu.d ]; then
     }
 }
 JSONEOF
-    echo "[✓] v25+ ucode menu added"
 fi
-
 echo "[✓] DinoClash panel installed"
 
-# ═══════════════════════════════════════════════
-# AUTO-DETECT LAN
-# ═══════════════════════════════════════════════
 LAN_IF=$(uci get network.lan.device 2>/dev/null || echo "br-lan")
 LAN_IP=$(uci -q get network.lan.ipaddr || echo "192.168.1.1")
 sed -i "s/iifname != \"br-lan\"/iifname != \"$LAN_IF\"/g" $D/nft.conf 2>/dev/null
-if ! grep -q "\"$LAN_IF\"" $D/nft.conf 2>/dev/null; then
-    echo "[!] WARNING: nft.conf LAN interface may need manual fix"
-fi
 echo "[✓] LAN: $LAN_IP on $LAN_IF"
 
-# ═══════════════════════════════════════════════
-# FIREWALL
-# ═══════════════════════════════════════════════
 uci -q delete firewall.mihomo_proxy 2>/dev/null
 uci set firewall.mihomo_proxy=rule
 uci set firewall.mihomo_proxy.name='Allow-DinoClash'
@@ -316,23 +213,16 @@ uci set firewall.mihomo_proxy.target='ACCEPT'
 uci commit firewall
 /etc/init.d/firewall restart 2>/dev/null || true
 
-# ═══════════════════════════════════════════════
-# APPLY PANEL (don't start service yet)
-# ═══════════════════════════════════════════════
 rm -rf /tmp/luci-*
 /etc/init.d/rpcd restart >/dev/null 2>&1
 /etc/init.d/uhttpd restart >/dev/null 2>&1
-
-# Service NOT started — user must upload config first
-echo "[✓] Panel ready (service is stopped)"
 
 echo ""
 echo "═══════════════════════════════════════"
 echo "🦕 DinoClash Installed Successfully!"
 echo ""
 echo "   ⚠️  Service is STOPPED (safe mode)"
-echo "   Internet works normally until you"
-echo "   upload YAML config and start the service."
+echo "   Internet works normally."
 echo ""
 echo "   🌐 LuCI Panel: http://$LAN_IP"
 echo "                  → Services → DinoClash 🦕"
@@ -341,18 +231,9 @@ echo "   🔑 Secret:     flclash123"
 echo ""
 echo "   📄 Next Steps:"
 echo "      1. Open LuCI Panel"
-echo "      2. Go to Config tab"
-echo "      3. Upload your YAML file"
-echo "      4. Click Start button"
-echo ""
-echo "   ✨ Features:"
-echo "      🌗 Dark/Light Theme"
-echo "      ⚡ Auto Proxy Testing"
-echo "      📊 Data Usage Tracker"
-echo "      🔔 Notifications"
-echo "      📱 Mobile Responsive"
+echo "      2. Upload YAML config"
+echo "      3. Auto-Bypass will turn ON automatically"
 echo ""
 echo "═══════════════════════════════════════"
 echo "🦕 DinoClash by Jahid Hasan Shuvo"
-echo "   https://github.com/jahid421/DinoClash-openwrt"
 echo "═══════════════════════════════════════"
