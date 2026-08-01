@@ -52,19 +52,13 @@ tun:
   device: utun
   auto-route: true
   auto-detect-interface: true
-  auto-redirect: false
   strict-route: true
-  mtu: 9000
-  gso: true
-  gso-max-size: 65536
+  mtu: 1500
   dns-hijack:
     - "any:53"
     - "tcp://any:53"
   inet4-address:
     - 172.19.0.1/30
-  inet6-address:
-    - "fdfe:dcba:9876::1/126"
-  endpoint-independent-nat: true
 
 dns:
   enable: true
@@ -78,20 +72,18 @@ dns:
     - "*.arpa"
     - "time.*.com"
     - "ntp.*.com"
-    - "*.openwrt.org"
     - "+.msftconnecttest.com"
     - "+.msftncsi.com"
-    - "localhost.ptlogin2.qq.com"
-    - "localhost.sec.qq.com"
     - "+.linkedin.com"
     - "+.discord.com"
     - "+.discordapp.com"
     - "+.whatsapp.net"
     - "+.messenger.com"
+    - "+.bkash.com"
+    - "+.nagad.com.bd"
   cache-algorithm: arc
   use-hosts: true
   use-system-hosts: true
-  respect-rules: true
   default-nameserver:
     - 1.1.1.1
     - 8.8.8.8
@@ -189,6 +181,7 @@ rules:
   - 'DOMAIN-SUFFIX,daraz.com.bd,DIRECT'
   - 'DOMAIN-SUFFIX,pathao.com,DIRECT'
   - 'DOMAIN-SUFFIX,foodpanda.com.bd,DIRECT'
+  - 'DOMAIN-SUFFIX,com.bd,DIRECT'
 
   # ═══ Banking Apps (DIRECT) ═══
   - 'DOMAIN-KEYWORD,bank,DIRECT'
@@ -207,10 +200,6 @@ rules:
   - 'DOMAIN-SUFFIX,local,DIRECT'
   - 'DOMAIN-SUFFIX,lan,DIRECT'
   - 'DST-PORT,9595,DIRECT'
-
-  # ═══ Bangladesh Local Traffic (DIRECT) ═══
-  - 'GEOIP,BD,DIRECT,no-resolve'
-  - 'GEOIP,LAN,DIRECT,no-resolve'
 
   # ═══ Everything Else → Proxy ═══
   - 'MATCH,Proxy'
