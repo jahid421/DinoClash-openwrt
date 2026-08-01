@@ -19,6 +19,9 @@ start_service() {
         return 0
     fi
 
+    # Ensure TUN module loaded
+    [ ! -e /dev/net/tun ] && insmod tun 2>/dev/null
+
     procd_open_instance mihomo
     procd_set_param command /usr/bin/mihomo -d /etc/mihomo
     procd_set_param respawn 3600 5 5
@@ -30,11 +33,12 @@ start_service() {
 
     sleep 3
 
+    # Setup transparent proxy (only if TUN not being used)
     if [ -f "$TRANSPARENT_FILE" ] && [ "$(cat "$TRANSPARENT_FILE")" = "1" ]; then
         setup_transparent
     fi
 
-    logger -t dinoclash "DinoClash started"
+    logger -t dinoclash "DinoClash started (TUN mode)"
 }
 
 stop_service() {
@@ -54,35 +58,11 @@ setup_transparent() {
             ERR=$(cat /tmp/dinoclash_nft_error.log 2>/dev/null | head -3)
             logger -t dinoclash "NFT ERROR: $ERR"
         fi
-    elif command -v iptables >/dev/null 2>&1; then
-        iptables -t nat -N DINOCLASH 2>/dev/null || iptables -t nat -F DINOCLASH
-        iptables -t nat -A DINOCLASH -d 0.0.0.0/8 -j RETURN
-        iptables -t nat -A DINOCLASH -d 10.0.0.0/8 -j RETURN
-        iptables -t nat -A DINOCLASH -d 127.0.0.0/8 -j RETURN
-        iptables -t nat -A DINOCLASH -d 169.254.0.0/16 -j RETURN
-        iptables -t nat -A DINOCLASH -d 172.16.0.0/12 -j RETURN
-        iptables -t nat -A DINOCLASH -d 192.168.0.0/16 -j RETURN
-        iptables -t nat -A DINOCLASH -d 224.0.0.0/4 -j RETURN
-        iptables -t nat -A DINOCLASH -d 240.0.0.0/4 -j RETURN
-        iptables -t nat -A DINOCLASH -p udp --dport 53 -j REDIRECT --to-ports 1053
-        iptables -t nat -A DINOCLASH -p tcp --dport 53 -j REDIRECT --to-ports 1053
-        iptables -t nat -A DINOCLASH -p tcp -j REDIRECT --to-ports 7892
-        iptables -t nat -A PREROUTING -i "$LAN_IF" -j DINOCLASH
-        logger -t dinoclash "Transparent proxy: iptables (legacy)"
-    else
-        logger -t dinoclash "WARNING: No firewall tool found!"
     fi
 }
 
 cleanup_transparent() {
     nft delete table inet mihomo 2>/dev/null || true
-
-    if command -v iptables >/dev/null 2>&1; then
-        LAN_IF=$(uci get network.lan.device 2>/dev/null || echo "br-lan")
-        iptables -t nat -D PREROUTING -i "$LAN_IF" -j DINOCLASH 2>/dev/null || true
-        iptables -t nat -F DINOCLASH 2>/dev/null || true
-        iptables -t nat -X DINOCLASH 2>/dev/null || true
-    fi
 }
 
 service_triggers() {
