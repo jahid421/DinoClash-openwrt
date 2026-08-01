@@ -1,7 +1,6 @@
 #!/bin/sh
 # ═══════════════════════════════════════════════
-# 🦕 DinoClash - TUN Mode YAML Optimizer
-# Works like FLClash - All Software Compatible
+# 🦕 DinoClash - Ultra Speed YAML Auto-Optimizer
 # Developer: Jahid Hasan Shuvo
 # ═══════════════════════════════════════════════
 
@@ -14,7 +13,6 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
     cat > "$TMP"
     
     if [ -s "$TMP" ]; then
-        # STEP 1: SPEED OPTIMIZATION
         awk '
         BEGIN { in_group=0 }
         /^  - name:/ { in_group=1 }
@@ -35,7 +33,7 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
         sed -i 's/tolerance: 50/tolerance: 20/g' "$TMP"
         sed -i 's/tolerance: 100/tolerance: 20/g' "$TMP"
         
-        # Remove problematic BD GeoIP rules (not in geoip-lite)
+        # Remove problematic BD GeoIP
         sed -i '/GEOIP,BD,DIRECT/d' "$TMP"
         sed -i '/GEOIP,LAN,DIRECT/d' "$TMP"
         
@@ -55,7 +53,6 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
         END { if (in_urltest && !has_lazy) print "    lazy: true" }
         ' "$TMP" > "${TMP}.lazy" && mv "${TMP}.lazy" "$TMP"
         
-        # STEP 2: REQUIRED SETTINGS
         add_if_missing() {
             local key="$1"
             local line="$2"
@@ -65,10 +62,11 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
         }
         
         add_if_missing "mixed-port:" "mixed-port: 7890"
+        add_if_missing "redir-port:" "redir-port: 7892"
         add_if_missing "allow-lan:" "allow-lan: true"
         add_if_missing "bind-address:" "bind-address: '*'"
         add_if_missing "mode:" "mode: rule"
-        add_if_missing "log-level:" "log-level: warning"
+        add_if_missing "log-level:" "log-level: info"
         add_if_missing "ipv6:" "ipv6: false"
         
         grep -q '^external-controller:' "$TMP" || echo 'external-controller: 0.0.0.0:9595' >> "$TMP"
@@ -80,10 +78,9 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
         grep -q '^global-client-fingerprint:' "$TMP" || echo 'global-client-fingerprint: chrome' >> "$TMP"
         grep -q '^tcp-concurrent:' "$TMP" || echo 'tcp-concurrent: true' >> "$TMP"
         grep -q '^unified-delay:' "$TMP" || echo 'unified-delay: true' >> "$TMP"
-        grep -q '^keep-alive-interval:' "$TMP" || echo 'keep-alive-interval: 15' >> "$TMP"
-        grep -q '^keep-alive-idle:' "$TMP" || echo 'keep-alive-idle: 600' >> "$TMP"
+        grep -q '^keep-alive-interval:' "$TMP" || echo 'keep-alive-interval: 10' >> "$TMP"
+        grep -q '^keep-alive-idle:' "$TMP" || echo 'keep-alive-idle: 10' >> "$TMP"
         
-        # STEP 3: PROFILE
         if ! grep -q '^profile:' "$TMP"; then
             cat >> "$TMP" << 'PEOF'
 
@@ -94,7 +91,6 @@ profile:
 PEOF
         fi
         
-        # STEP 4: SNIFFER
         if ! grep -q '^sniffer:' "$TMP"; then
             cat >> "$TMP" << 'SEOF'
 
@@ -111,35 +107,29 @@ sniffer:
       ports: [443, 8443]
     QUIC:
       ports: [443, 8443]
-  skip-domain:
-    - "Mijia Cloud"
-    - "+.push.apple.com"
 SEOF
         fi
         
-        # STEP 5: TUN MODE (FLClash Style) - ALWAYS ENABLED
         if ! grep -q '^tun:' "$TMP"; then
             cat >> "$TMP" << 'TEOF'
 
 tun:
-  enable: true
+  enable: false
   stack: system
   device: utun
   auto-route: true
   auto-detect-interface: true
-  strict-route: true
+  strict-route: false
   mtu: 1500
   dns-hijack:
     - "any:53"
-    - "tcp://any:53"
   inet4-address:
     - 172.19.0.1/30
 TEOF
         else
-            sed -i '/^tun:/,/^[a-z]/ s/^  enable: false$/  enable: true/' "$TMP"
+            sed -i '/^tun:/,/^[a-z]/ s/^  enable: true$/  enable: false/' "$TMP"
         fi
         
-        # STEP 6: DNS (fake-ip for TUN mode)
         if ! grep -q '^dns:' "$TMP"; then
             cat >> "$TMP" << 'DEOF'
 
@@ -147,89 +137,32 @@ dns:
   enable: true
   listen: 0.0.0.0:1053
   ipv6: false
-  enhanced-mode: fake-ip
-  fake-ip-range: 198.18.0.1/16
-  fake-ip-filter:
-    - "*.lan"
-    - "*.local"
-    - "*.arpa"
-    - "time.*.com"
-    - "ntp.*.com"
-    - "+.msftconnecttest.com"
-    - "+.msftncsi.com"
-    - "+.linkedin.com"
-    - "+.discord.com"
-    - "+.whatsapp.net"
-    - "+.messenger.com"
-    - "+.bkash.com"
-    - "+.nagad.com.bd"
-  cache-algorithm: arc
-  use-hosts: true
-  use-system-hosts: true
+  enhanced-mode: redir-host
   default-nameserver:
+    - 223.5.5.5
     - 1.1.1.1
     - 8.8.8.8
-    - 223.5.5.5
+    - 114.114.114.114
   nameserver:
     - https://1.1.1.1/dns-query
     - https://dns.google/dns-query
   fallback:
     - tls://1.1.1.1:853
     - tls://dns.google:853
-  nameserver-policy:
-    '+.linkedin.com': '1.1.1.1'
-    '+.discord.com': '1.1.1.1'
-    '+.whatsapp.com': '1.1.1.1'
-    '+.messenger.com': '1.1.1.1'
-    '+.facebook.com': '1.1.1.1'
-    '+.instagram.com': '1.1.1.1'
-    '+.telegram.org': '1.1.1.1'
 DEOF
         else
-            sed -i 's/enhanced-mode: redir-host/enhanced-mode: fake-ip/g' "$TMP"
+            sed -i 's/enhanced-mode: fake-ip/enhanced-mode: redir-host/g' "$TMP"
             sed -i 's/prefer-h3: true/prefer-h3: false/g' "$TMP"
         fi
         
-        # STEP 7: LAN SAFETY + CHAT + REMOTE DESKTOP + GAMES + BD APPS
         LAN_IP=$(uci -q get network.lan.ipaddr || echo "192.168.1.1")
         LAN_NET=$(echo "$LAN_IP" | awk -F. '{print $1"."$2"."$3".0/24"}')
         
         if grep -q '^rules:' "$TMP"; then
             sed -i '/192.168.87.0\/24,DIRECT/d' "$TMP"
             sed -i '/192.168.64.0\/24,DIRECT/d' "$TMP"
-            
-            if ! grep -q "linkedin.com,DIRECT" "$TMP"; then
+            if ! grep -q "$LAN_NET,DIRECT" "$TMP"; then
                 sed -i "/^rules:/a\\
-  - 'DOMAIN-SUFFIX,linkedin.com,DIRECT'\\
-  - 'DOMAIN-KEYWORD,linkedin,DIRECT'\\
-  - 'DOMAIN-SUFFIX,discord.com,DIRECT'\\
-  - 'DOMAIN-SUFFIX,discord.gg,DIRECT'\\
-  - 'DOMAIN-KEYWORD,discord,DIRECT'\\
-  - 'DOMAIN-SUFFIX,whatsapp.com,DIRECT'\\
-  - 'DOMAIN-SUFFIX,whatsapp.net,DIRECT'\\
-  - 'DOMAIN-SUFFIX,messenger.com,DIRECT'\\
-  - 'DOMAIN-SUFFIX,telegram.org,DIRECT'\\
-  - 'DOMAIN-SUFFIX,slack.com,DIRECT'\\
-  - 'DOMAIN-SUFFIX,zoom.us,DIRECT'\\
-  - 'DOMAIN-SUFFIX,teams.microsoft.com,DIRECT'\\
-  - 'DOMAIN-SUFFIX,ultraviewer.net,DIRECT'\\
-  - 'DOMAIN-KEYWORD,ultraviewer,DIRECT'\\
-  - 'DOMAIN-SUFFIX,anydesk.com,DIRECT'\\
-  - 'DOMAIN-KEYWORD,anydesk,DIRECT'\\
-  - 'DOMAIN-SUFFIX,teamviewer.com,DIRECT'\\
-  - 'DOMAIN-KEYWORD,teamviewer,DIRECT'\\
-  - 'DOMAIN-KEYWORD,pubg,DIRECT'\\
-  - 'DOMAIN-KEYWORD,freefire,DIRECT'\\
-  - 'DOMAIN-KEYWORD,garena,DIRECT'\\
-  - 'DOMAIN-KEYWORD,valorant,DIRECT'\\
-  - 'DOMAIN-KEYWORD,bkash,DIRECT'\\
-  - 'DOMAIN-KEYWORD,nagad,DIRECT'\\
-  - 'DOMAIN-KEYWORD,rocket,DIRECT'\\
-  - 'DOMAIN-KEYWORD,bank,DIRECT'\\
-  - 'DOMAIN-SUFFIX,gp.com.bd,DIRECT'\\
-  - 'DOMAIN-SUFFIX,robi.com.bd,DIRECT'\\
-  - 'DOMAIN-SUFFIX,banglalink.com.bd,DIRECT'\\
-  - 'DOMAIN-SUFFIX,com.bd,DIRECT'\\
   - 'IP-CIDR,$LAN_NET,DIRECT,no-resolve'\\
   - 'IP-CIDR,192.168.0.0/16,DIRECT,no-resolve'\\
   - 'IP-CIDR,10.0.0.0/8,DIRECT,no-resolve'\\
@@ -239,11 +172,11 @@ DEOF
             fi
         fi
         
-        # STEP 8: VALIDATE & APPLY
         if /usr/bin/mihomo -d /etc/mihomo -f "$TMP" -t 2>/tmp/mhcfg_err.log; then
             cp /etc/mihomo/config.yaml /etc/mihomo/config.yaml.bak 2>/dev/null
             mv "$TMP" /etc/mihomo/config.yaml
-            echo "0" > /etc/mihomo/transparent
+            # Auto enable transparent + service on YAML upload
+            echo "1" > /etc/mihomo/transparent
             echo "1" > /etc/mihomo/enabled
             /etc/init.d/mihomo restart >/dev/null 2>&1
             echo "SAVED"
