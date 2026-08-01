@@ -2,7 +2,6 @@
 # ═══════════════════════════════════════════════
 # 🦕 DinoClash - Ultra Smart Auto-Optimizer
 # Auto detects proxy types & creates smart routing
-# Just upload proxies, everything else auto-configured!
 # Developer: Jahid Hasan Shuvo
 # ═══════════════════════════════════════════════
 
@@ -11,7 +10,7 @@ echo ""
 
 if [ "$REQUEST_METHOD" = "POST" ]; then
     TMP="/tmp/mhcfg_$$.yaml"
-    trap "rm -f ${TMP}.opt ${TMP}.lazy ${TMP}.new /tmp/mhcfg_err.log /tmp/proxy_list_$$" EXIT
+    trap "rm -f ${TMP}.opt ${TMP}.lazy ${TMP}.new ${TMP}.http ${TMP}.socks ${TMP}.adv /tmp/mhcfg_err.log" EXIT
     cat > "$TMP"
     
     if [ -s "$TMP" ]; then
@@ -150,6 +149,8 @@ DEOF
         # ═══════════════════════════════════════════
         # STEP 7: AUTO-DETECT PROXIES & BUILD GROUPS
         # ═══════════════════════════════════════════
+        
+        # Extract proxy names by type using awk
         awk '
         /^proxies:/ { in_proxies=1; next }
         /^[a-z]/ && !/^  / && !/^proxies:/ { in_proxies=0 }
@@ -174,8 +175,9 @@ DEOF
         SOCKS_COUNT=$(grep -c "^SOCKS:" /tmp/proxy_list_$$ 2>/dev/null || echo 0)
         ADV_COUNT=$(grep -c "^ADV:" /tmp/proxy_list_$$ 2>/dev/null || echo 0)
         
-        # Remove existing proxy-groups
+        # Remove existing proxy-groups and rules for regeneration
         if grep -q '^proxy-groups:' "$TMP"; then
+            # Delete from proxy-groups to end of file (until next top-level key that isn't rules/proxies)
             awk '
             /^proxy-groups:/ { skip=1; next }
             /^rules:/ { skip=0 }
@@ -193,11 +195,14 @@ DEOF
             ' "$TMP" > "${TMP}.new" && mv "${TMP}.new" "$TMP"
         fi
         
+        # ═══════════════════════════════════════════
         # BUILD PROXY GROUPS
+        # ═══════════════════════════════════════════
         {
             echo ""
             echo "proxy-groups:"
             
+            # 🚀 Fast Speed (HTTP)
             if [ "$HTTP_COUNT" -gt 0 ]; then
                 echo "  - name: \"🚀 Fast Speed\""
                 echo "    type: url-test"
@@ -211,6 +216,7 @@ DEOF
                 echo "    lazy: true"
             fi
             
+            # ⚡ UDP Apps (SOCKS5)
             if [ "$SOCKS_COUNT" -gt 0 ]; then
                 echo "  - name: \"⚡ UDP Apps\""
                 echo "    type: url-test"
@@ -224,6 +230,7 @@ DEOF
                 echo "    lazy: true"
             fi
             
+            # 🔒 Advanced (SS/VMess/VLESS/Trojan)
             if [ "$ADV_COUNT" -gt 0 ]; then
                 echo "  - name: \"🔒 Advanced\""
                 echo "    type: url-test"
@@ -237,7 +244,7 @@ DEOF
                 echo "    lazy: true"
             fi
             
-            # Main Proxy Group
+            # Main Proxy Group (Selector)
             echo "  - name: \"Proxy\""
             echo "    type: select"
             echo "    proxies:"
@@ -246,7 +253,7 @@ DEOF
             [ "$ADV_COUNT" -gt 0 ] && echo "      - \"🔒 Advanced\""
             echo "      - DIRECT"
             
-            # Streaming
+            # Streaming (Prefer HTTP for speed)
             echo "  - name: \"🎬 Streaming\""
             echo "    type: select"
             echo "    proxies:"
@@ -255,7 +262,7 @@ DEOF
             [ "$SOCKS_COUNT" -gt 0 ] && echo "      - \"⚡ UDP Apps\""
             echo "      - DIRECT"
             
-            # Downloads
+            # Downloads (Prefer HTTP for speed)
             echo "  - name: \"📥 Downloads\""
             echo "    type: select"
             echo "    proxies:"
@@ -263,7 +270,7 @@ DEOF
             [ "$ADV_COUNT" -gt 0 ] && echo "      - \"🔒 Advanced\""
             echo "      - DIRECT"
             
-            # Games UDP
+            # Games UDP (Prefer SOCKS5)
             echo "  - name: \"🎮 Games UDP\""
             echo "    type: select"
             echo "    proxies:"
@@ -271,7 +278,7 @@ DEOF
             [ "$ADV_COUNT" -gt 0 ] && echo "      - \"🔒 Advanced\""
             echo "      - DIRECT"
             
-            # RealTime
+            # RealTime (Prefer SOCKS5)
             echo "  - name: \"📞 RealTime\""
             echo "    type: select"
             echo "    proxies:"
@@ -280,7 +287,9 @@ DEOF
             echo "      - DIRECT"
         } >> "$TMP"
         
+        # ═══════════════════════════════════════════
         # BUILD SMART ROUTING RULES
+        # ═══════════════════════════════════════════
         LAN_IP=$(uci -q get network.lan.ipaddr || echo "192.168.1.1")
         LAN_NET=$(echo "$LAN_IP" | awk -F. '{print $1"."$2"."$3".0/24"}')
         
@@ -298,7 +307,7 @@ DEOF
             echo "  - 'DOMAIN-SUFFIX,local,DIRECT'"
             echo "  - 'DOMAIN-SUFFIX,lan,DIRECT'"
             echo "  - 'DST-PORT,9595,DIRECT'"
-            echo "  # Bangladesh Apps"
+            echo "  # Bangladesh Apps → DIRECT"
             echo "  - 'DOMAIN-SUFFIX,com.bd,DIRECT'"
             echo "  - 'DOMAIN-SUFFIX,gov.bd,DIRECT'"
             echo "  - 'DOMAIN-KEYWORD,bkash,DIRECT'"
@@ -354,7 +363,9 @@ DEOF
         
         rm -f /tmp/proxy_list_$$
         
+        # ═══════════════════════════════════════════
         # STEP 8: VALIDATE & APPLY
+        # ═══════════════════════════════════════════
         if /usr/bin/mihomo -d /etc/mihomo -f "$TMP" -t 2>/tmp/mhcfg_err.log; then
             cp /etc/mihomo/config.yaml /etc/mihomo/config.yaml.bak 2>/dev/null
             mv "$TMP" /etc/mihomo/config.yaml
