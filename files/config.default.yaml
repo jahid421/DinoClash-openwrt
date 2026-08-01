@@ -1,8 +1,10 @@
-# ═══════════════════════════════════════════
-# 🦕 DinoClash Default Config for OpenWrt
-# Ultra Speed + Low Latency
+# ═══════════════════════════════════════════════
+# 🦕 DinoClash Default Config
+# Upload your YAML with proxies from Panel
+# Router will auto-configure everything!
 # Developer: Jahid Hasan Shuvo
-# ═══════════════════════════════════════════
+# ═══════════════════════════════════════════════
+
 mixed-port: 7890
 redir-port: 7892
 allow-lan: true
@@ -61,9 +63,9 @@ dns:
   ipv6: false
   enhanced-mode: redir-host
   default-nameserver:
-    - 223.5.5.5
     - 1.1.1.1
     - 8.8.8.8
+    - 223.5.5.5
     - 114.114.114.114
   nameserver:
     - https://1.1.1.1/dns-query
@@ -71,10 +73,6 @@ dns:
   fallback:
     - tls://1.1.1.1:853
     - tls://dns.google:853
-  nameserver-policy:
-    '+.google.com': 'https://dns.google/dns-query'
-    '+.facebook.com': 'https://1.1.1.1/dns-query'
-    '+.youtube.com': 'https://dns.google/dns-query'
 
 proxies: []
 
