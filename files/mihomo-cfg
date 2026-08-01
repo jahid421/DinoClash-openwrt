@@ -2,7 +2,6 @@
 # ═══════════════════════════════════════════════
 # 🦕 DinoClash - Smart Auto-Config Engine
 # Works like OpenClash / FLClash
-# Upload any YAML → Auto detect → Auto configure!
 # Developer: Jahid Hasan Shuvo
 # ═══════════════════════════════════════════════
 
@@ -16,9 +15,7 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
     
     if [ -s "$TMP" ]; then
     
-        # ═══════════════════════════════════════
-        # STEP 1: SPEED OPTIMIZATION
-        # ═══════════════════════════════════════
+        # SPEED OPTIMIZATION
         awk '
         BEGIN { in_group=0 }
         /^  - name:/ { in_group=1 }
@@ -38,7 +35,6 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
         sed -i 's/interval: 180/interval: 120/g' "$TMP"
         sed -i 's/tolerance: 50/tolerance: 20/g' "$TMP"
         sed -i 's/tolerance: 100/tolerance: 20/g' "$TMP"
-        
         sed -i '/GEOIP,BD,DIRECT/d' "$TMP"
         sed -i '/GEOIP,LAN,DIRECT/d' "$TMP"
         
@@ -58,9 +54,7 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
         END { if (in_urltest && !has_lazy) print "    lazy: true" }
         ' "$TMP" > "${TMP}.lazy" && mv "${TMP}.lazy" "$TMP"
         
-        # ═══════════════════════════════════════
-        # STEP 2: AUTO-ADD BASIC SETTINGS
-        # ═══════════════════════════════════════
+        # BASIC SETTINGS
         add_if_missing() {
             if ! grep -q "^${1}" "$TMP"; then
                 { echo "$2"; cat "$TMP"; } > "${TMP}.new" && mv "${TMP}.new" "$TMP"
@@ -87,9 +81,7 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
         grep -q '^keep-alive-interval:' "$TMP" || echo 'keep-alive-interval: 10' >> "$TMP"
         grep -q '^keep-alive-idle:' "$TMP" || echo 'keep-alive-idle: 10' >> "$TMP"
         
-        # ═══════════════════════════════════════
-        # STEP 3: AUTO-ADD PROFILE
-        # ═══════════════════════════════════════
+        # PROFILE
         if ! grep -q '^profile:' "$TMP"; then
             cat >> "$TMP" << 'PEOF'
 
@@ -100,9 +92,7 @@ profile:
 PEOF
         fi
         
-        # ═══════════════════════════════════════
-        # STEP 4: AUTO-ADD SNIFFER
-        # ═══════════════════════════════════════
+        # SNIFFER
         if ! grep -q '^sniffer:' "$TMP"; then
             cat >> "$TMP" << 'SEOF'
 
@@ -122,9 +112,7 @@ sniffer:
 SEOF
         fi
         
-        # ═══════════════════════════════════════
-        # STEP 5: AUTO-ADD TUN (disabled safe mode)
-        # ═══════════════════════════════════════
+        # TUN
         if ! grep -q '^tun:' "$TMP"; then
             cat >> "$TMP" << 'TEOF'
 
@@ -145,9 +133,7 @@ TEOF
             sed -i '/^tun:/,/^[a-z]/ s/^  enable: true$/  enable: false/' "$TMP"
         fi
         
-        # ═══════════════════════════════════════
-        # STEP 6: AUTO-ADD DNS
-        # ═══════════════════════════════════════
+        # DNS
         if ! grep -q '^dns:' "$TMP"; then
             cat >> "$TMP" << 'DEOF'
 
@@ -173,12 +159,7 @@ DEOF
             sed -i 's/prefer-h3: true/prefer-h3: false/g' "$TMP"
         fi
         
-        # ═══════════════════════════════════════
-        # STEP 7: AUTO-DETECT PROXY TYPES
-        # (Works like OpenClash / FLClash)
-        # ═══════════════════════════════════════
-        
-        # Extract proxy names by type
+        # AUTO-DETECT PROXY TYPES (no emoji - safe)
         rm -f /tmp/dcproxy_$$
         
         awk '
@@ -189,14 +170,11 @@ DEOF
             cn=n
         }
         inp && /^    type: *http$/ { print "H|" cn }
-        inp && /^    type: *http$/ { next }
         inp && /type: *socks5/ { print "S|" cn }
         inp && /type: *ss$/ { print "A|" cn }
         inp && /type: *vmess/ { print "A|" cn }
         inp && /type: *vless/ { print "A|" cn }
         inp && /type: *trojan/ { print "A|" cn }
-        inp && /type: *hysteria/ { print "A|" cn }
-        inp && /type: *tuic/ { print "A|" cn }
         ' "$TMP" | sort -t'|' -k2 -u > /tmp/dcproxy_$$
         
         HC=$(grep -c "^H|" /tmp/dcproxy_$$ 2>/dev/null || echo 0)
@@ -204,9 +182,7 @@ DEOF
         AC=$(grep -c "^A|" /tmp/dcproxy_$$ 2>/dev/null || echo 0)
         TOTAL=$((HC + SC + AC))
         
-        # Only rebuild groups/rules if proxies found
         if [ "$TOTAL" -gt 0 ]; then
-        
             # Remove old proxy-groups
             if grep -q '^proxy-groups:' "$TMP"; then
                 awk '
@@ -225,14 +201,11 @@ DEOF
                 ' "$TMP" > "${TMP}.new" && mv "${TMP}.new" "$TMP"
             fi
             
-            # ═══════════════════════════════════════
-            # BUILD SMART PROXY GROUPS
-            # ═══════════════════════════════════════
+            # BUILD PROXY GROUPS (no emoji)
             {
                 echo ""
                 echo "proxy-groups:"
                 
-                # HTTP group
                 if [ "$HC" -gt 0 ]; then
                     echo "  - name: \"Fast Speed\""
                     echo "    type: url-test"
@@ -246,7 +219,6 @@ DEOF
                     echo "    lazy: true"
                 fi
                 
-                # SOCKS5 group
                 if [ "$SC" -gt 0 ]; then
                     echo "  - name: \"UDP Apps\""
                     echo "    type: url-test"
@@ -260,7 +232,6 @@ DEOF
                     echo "    lazy: true"
                 fi
                 
-                # Advanced group
                 if [ "$AC" -gt 0 ]; then
                     echo "  - name: \"Advanced\""
                     echo "    type: url-test"
@@ -274,7 +245,6 @@ DEOF
                     echo "    lazy: true"
                 fi
                 
-                # Proxy (Main)
                 echo "  - name: \"Proxy\""
                 echo "    type: select"
                 echo "    proxies:"
@@ -283,7 +253,6 @@ DEOF
                 [ "$AC" -gt 0 ] && echo "      - \"Advanced\""
                 echo "      - DIRECT"
                 
-                # Streaming
                 echo "  - name: \"Streaming\""
                 echo "    type: select"
                 echo "    proxies:"
@@ -292,7 +261,6 @@ DEOF
                 [ "$SC" -gt 0 ] && echo "      - \"UDP Apps\""
                 echo "      - DIRECT"
                 
-                # Downloads
                 echo "  - name: \"Downloads\""
                 echo "    type: select"
                 echo "    proxies:"
@@ -300,7 +268,6 @@ DEOF
                 [ "$AC" -gt 0 ] && echo "      - \"Advanced\""
                 echo "      - DIRECT"
                 
-                # Games
                 echo "  - name: \"Games\""
                 echo "    type: select"
                 echo "    proxies:"
@@ -308,7 +275,6 @@ DEOF
                 [ "$AC" -gt 0 ] && echo "      - \"Advanced\""
                 echo "      - DIRECT"
                 
-                # RealTime
                 echo "  - name: \"RealTime\""
                 echo "    type: select"
                 echo "    proxies:"
@@ -318,9 +284,7 @@ DEOF
                 
             } >> "$TMP"
             
-            # ═══════════════════════════════════════
-            # BUILD SMART ROUTING RULES
-            # ═══════════════════════════════════════
+            # BUILD RULES (no emoji)
             LAN_IP=$(uci -q get network.lan.ipaddr || echo "192.168.1.1")
             LAN_NET=$(echo "$LAN_IP" | awk -F. '{print $1"."$2"."$3".0/24"}')
             
@@ -387,9 +351,7 @@ DEOF
         
         rm -f /tmp/dcproxy_$$
         
-        # ═══════════════════════════════════════
-        # STEP 8: VALIDATE & APPLY
-        # ═══════════════════════════════════════
+        # VALIDATE & APPLY
         if /usr/bin/mihomo -d /etc/mihomo -f "$TMP" -t 2>/tmp/mhcfg_err.log; then
             cp /etc/mihomo/config.yaml /etc/mihomo/config.yaml.bak 2>/dev/null
             mv "$TMP" /etc/mihomo/config.yaml
