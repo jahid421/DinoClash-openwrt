@@ -45,7 +45,6 @@ sniffer:
     - "Mijia Cloud"
     - "+.push.apple.com"
 
-# ═══ TUN MODE - Works like FLClash ═══
 tun:
   enable: true
   stack: system
@@ -79,8 +78,6 @@ dns:
     - "+.discordapp.com"
     - "+.whatsapp.net"
     - "+.messenger.com"
-    - "+.bkash.com"
-    - "+.nagad.com.bd"
   cache-algorithm: arc
   use-hosts: true
   use-system-hosts: true
@@ -125,7 +122,6 @@ proxy-groups:
     lazy: true
 
 rules:
-  # ═══ Chat & Social Apps (DIRECT) ═══
   - 'DOMAIN-SUFFIX,linkedin.com,DIRECT'
   - 'DOMAIN-SUFFIX,licdn.com,DIRECT'
   - 'DOMAIN-KEYWORD,linkedin,DIRECT'
@@ -147,8 +143,6 @@ rules:
   - 'DOMAIN-SUFFIX,zoom.us,DIRECT'
   - 'DOMAIN-SUFFIX,skype.com,DIRECT'
   - 'DOMAIN-SUFFIX,teams.microsoft.com,DIRECT'
-
-  # ═══ Remote Desktop (DIRECT) ═══
   - 'DOMAIN-SUFFIX,ultraviewer.net,DIRECT'
   - 'DOMAIN-KEYWORD,ultraviewer,DIRECT'
   - 'DOMAIN-SUFFIX,anydesk.com,DIRECT'
@@ -157,8 +151,6 @@ rules:
   - 'DOMAIN-KEYWORD,teamviewer,DIRECT'
   - 'DOMAIN-SUFFIX,rustdesk.com,DIRECT'
   - 'DOMAIN-KEYWORD,rustdesk,DIRECT'
-
-  # ═══ Gaming (DIRECT) ═══
   - 'DOMAIN-KEYWORD,pubg,DIRECT'
   - 'DOMAIN-KEYWORD,freefire,DIRECT'
   - 'DOMAIN-KEYWORD,garena,DIRECT'
@@ -169,8 +161,6 @@ rules:
   - 'DOMAIN-SUFFIX,battle.net,DIRECT'
   - 'DOMAIN-KEYWORD,valorant,DIRECT'
   - 'DOMAIN-KEYWORD,fortnite,DIRECT'
-
-  # ═══ Bangladesh Apps (DIRECT) ═══
   - 'DOMAIN-KEYWORD,bkash,DIRECT'
   - 'DOMAIN-KEYWORD,nagad,DIRECT'
   - 'DOMAIN-KEYWORD,rocket,DIRECT'
@@ -182,15 +172,10 @@ rules:
   - 'DOMAIN-SUFFIX,pathao.com,DIRECT'
   - 'DOMAIN-SUFFIX,foodpanda.com.bd,DIRECT'
   - 'DOMAIN-SUFFIX,com.bd,DIRECT'
-
-  # ═══ Banking Apps (DIRECT) ═══
   - 'DOMAIN-KEYWORD,bank,DIRECT'
   - 'DOMAIN-KEYWORD,dbbl,DIRECT'
   - 'DOMAIN-KEYWORD,brac,DIRECT'
   - 'DOMAIN-KEYWORD,islami,DIRECT'
-  - 'DOMAIN-KEYWORD,citybank,DIRECT'
-
-  # ═══ LAN Safety (DIRECT) ═══
   - 'IP-CIDR,192.168.0.0/16,DIRECT,no-resolve'
   - 'IP-CIDR,10.0.0.0/8,DIRECT,no-resolve'
   - 'IP-CIDR,172.16.0.0/12,DIRECT,no-resolve'
@@ -200,6 +185,4 @@ rules:
   - 'DOMAIN-SUFFIX,local,DIRECT'
   - 'DOMAIN-SUFFIX,lan,DIRECT'
   - 'DST-PORT,9595,DIRECT'
-
-  # ═══ Everything Else → Proxy ═══
   - 'MATCH,Proxy'
