@@ -1,16 +1,14 @@
 # ═══════════════════════════════════════════
 # 🦕 DinoClash Default Config for OpenWrt
-# Hybrid Mode: TUN + Transparent Proxy
-# Works like OpenClash + FLClash
+# Ultra Speed + Low Latency
 # Developer: Jahid Hasan Shuvo
 # ═══════════════════════════════════════════
 mixed-port: 7890
-redir-port: 7890
-tproxy-port: 7891
+redir-port: 7892
 allow-lan: true
 bind-address: '*'
 mode: rule
-log-level: warning
+log-level: info
 ipv6: false
 external-controller: 0.0.0.0:9595
 external-ui: /etc/mihomo/ui
@@ -22,8 +20,8 @@ find-process-mode: "off"
 global-client-fingerprint: chrome
 tcp-concurrent: true
 unified-delay: true
-keep-alive-interval: 15
-keep-alive-idle: 600
+keep-alive-interval: 10
+keep-alive-idle: 10
 
 profile:
   store-selected: true
@@ -43,12 +41,9 @@ sniffer:
       ports: [443, 8443]
     QUIC:
       ports: [443, 8443]
-  skip-domain:
-    - "Mijia Cloud"
-    - "+.push.apple.com"
 
 tun:
-  enable: true
+  enable: false
   stack: system
   device: utun
   auto-route: true
@@ -57,7 +52,6 @@ tun:
   mtu: 1500
   dns-hijack:
     - "any:53"
-    - "tcp://any:53"
   inet4-address:
     - 172.19.0.1/30
 
@@ -65,89 +59,42 @@ dns:
   enable: true
   listen: 0.0.0.0:1053
   ipv6: false
-  enhanced-mode: fake-ip
-  fake-ip-range: 198.18.0.1/16
-  fake-ip-filter:
-    - "*.lan"
-    - "*.local"
-    - "*.arpa"
-    - "time.*.com"
-    - "ntp.*.com"
-    - "+.msftconnecttest.com"
-    - "+.msftncsi.com"
-    - "+.linkedin.com"
-    - "+.discord.com"
-    - "+.discordapp.com"
-    - "+.whatsapp.net"
-    - "+.messenger.com"
-  cache-algorithm: arc
-  use-hosts: true
-  use-system-hosts: true
+  enhanced-mode: redir-host
   default-nameserver:
+    - 223.5.5.5
     - 1.1.1.1
     - 8.8.8.8
-    - 223.5.5.5
+    - 114.114.114.114
   nameserver:
     - https://1.1.1.1/dns-query
     - https://dns.google/dns-query
-    - https://cloudflare-dns.com/dns-query
   fallback:
     - tls://1.1.1.1:853
     - tls://dns.google:853
   nameserver-policy:
-    '+.linkedin.com': '1.1.1.1'
-    '+.discord.com': '1.1.1.1'
-    '+.discordapp.com': '1.1.1.1'
-    '+.whatsapp.com': '1.1.1.1'
-    '+.whatsapp.net': '1.1.1.1'
-    '+.messenger.com': '1.1.1.1'
-    '+.facebook.com': '1.1.1.1'
-    '+.instagram.com': '1.1.1.1'
-    '+.telegram.org': '1.1.1.1'
+    '+.google.com': 'https://dns.google/dns-query'
+    '+.facebook.com': 'https://1.1.1.1/dns-query'
+    '+.youtube.com': 'https://dns.google/dns-query'
 
 proxies: []
 
 proxy-groups:
   - name: "Proxy"
-    type: select
-    proxies:
-      - Auto
-      - DIRECT
-
-  - name: "Auto"
     type: url-test
     proxies:
       - DIRECT
     url: http://www.gstatic.com/generate_204
-    interval: 300
-    tolerance: 50
+    interval: 120
+    tolerance: 20
     lazy: true
 
 rules:
-  - 'DOMAIN-SUFFIX,linkedin.com,DIRECT'
-  - 'DOMAIN-KEYWORD,linkedin,DIRECT'
-  - 'DOMAIN-SUFFIX,discord.com,DIRECT'
-  - 'DOMAIN-SUFFIX,discord.gg,DIRECT'
-  - 'DOMAIN-KEYWORD,discord,DIRECT'
-  - 'DOMAIN-SUFFIX,whatsapp.com,DIRECT'
-  - 'DOMAIN-SUFFIX,whatsapp.net,DIRECT'
-  - 'DOMAIN-SUFFIX,messenger.com,DIRECT'
-  - 'DOMAIN-SUFFIX,telegram.org,DIRECT'
-  - 'DOMAIN-SUFFIX,ultraviewer.net,DIRECT'
-  - 'DOMAIN-KEYWORD,ultraviewer,DIRECT'
-  - 'DOMAIN-SUFFIX,anydesk.com,DIRECT'
-  - 'DOMAIN-KEYWORD,anydesk,DIRECT'
-  - 'DOMAIN-SUFFIX,teamviewer.com,DIRECT'
-  - 'DOMAIN-KEYWORD,teamviewer,DIRECT'
-  - 'DOMAIN-KEYWORD,bkash,DIRECT'
-  - 'DOMAIN-KEYWORD,nagad,DIRECT'
-  - 'DOMAIN-SUFFIX,gp.com.bd,DIRECT'
-  - 'DOMAIN-SUFFIX,robi.com.bd,DIRECT'
-  - 'DOMAIN-SUFFIX,com.bd,DIRECT'
   - 'IP-CIDR,192.168.0.0/16,DIRECT,no-resolve'
   - 'IP-CIDR,10.0.0.0/8,DIRECT,no-resolve'
   - 'IP-CIDR,172.16.0.0/12,DIRECT,no-resolve'
   - 'IP-CIDR,127.0.0.0/8,DIRECT,no-resolve'
+  - 'IP-CIDR,100.64.0.0/10,DIRECT,no-resolve'
+  - 'IP-CIDR,224.0.0.0/4,DIRECT,no-resolve'
   - 'DOMAIN-SUFFIX,local,DIRECT'
   - 'DOMAIN-SUFFIX,lan,DIRECT'
   - 'DST-PORT,9595,DIRECT'
