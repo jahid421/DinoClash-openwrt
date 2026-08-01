@@ -1,10 +1,12 @@
 # ═══════════════════════════════════════════
 # 🦕 DinoClash Default Config for OpenWrt
-# TUN Mode - Works like FLClash
-# All Software Compatible
+# Hybrid Mode: TUN + Transparent Proxy
+# Works like OpenClash + FLClash
 # Developer: Jahid Hasan Shuvo
 # ═══════════════════════════════════════════
 mixed-port: 7890
+redir-port: 7890
+tproxy-port: 7891
 allow-lan: true
 bind-address: '*'
 mode: rule
@@ -51,7 +53,7 @@ tun:
   device: utun
   auto-route: true
   auto-detect-interface: true
-  strict-route: true
+  strict-route: false
   mtu: 1500
   dns-hijack:
     - "any:53"
@@ -123,65 +125,29 @@ proxy-groups:
 
 rules:
   - 'DOMAIN-SUFFIX,linkedin.com,DIRECT'
-  - 'DOMAIN-SUFFIX,licdn.com,DIRECT'
   - 'DOMAIN-KEYWORD,linkedin,DIRECT'
   - 'DOMAIN-SUFFIX,discord.com,DIRECT'
   - 'DOMAIN-SUFFIX,discord.gg,DIRECT'
-  - 'DOMAIN-SUFFIX,discordapp.com,DIRECT'
-  - 'DOMAIN-SUFFIX,discordapp.net,DIRECT'
   - 'DOMAIN-KEYWORD,discord,DIRECT'
   - 'DOMAIN-SUFFIX,whatsapp.com,DIRECT'
   - 'DOMAIN-SUFFIX,whatsapp.net,DIRECT'
-  - 'DOMAIN-KEYWORD,whatsapp,DIRECT'
   - 'DOMAIN-SUFFIX,messenger.com,DIRECT'
-  - 'DOMAIN-KEYWORD,messenger,DIRECT'
-  - 'DOMAIN-SUFFIX,fbcdn.net,DIRECT'
   - 'DOMAIN-SUFFIX,telegram.org,DIRECT'
-  - 'DOMAIN-SUFFIX,t.me,DIRECT'
-  - 'DOMAIN-KEYWORD,telegram,DIRECT'
-  - 'DOMAIN-SUFFIX,slack.com,DIRECT'
-  - 'DOMAIN-SUFFIX,zoom.us,DIRECT'
-  - 'DOMAIN-SUFFIX,skype.com,DIRECT'
-  - 'DOMAIN-SUFFIX,teams.microsoft.com,DIRECT'
   - 'DOMAIN-SUFFIX,ultraviewer.net,DIRECT'
   - 'DOMAIN-KEYWORD,ultraviewer,DIRECT'
   - 'DOMAIN-SUFFIX,anydesk.com,DIRECT'
   - 'DOMAIN-KEYWORD,anydesk,DIRECT'
   - 'DOMAIN-SUFFIX,teamviewer.com,DIRECT'
   - 'DOMAIN-KEYWORD,teamviewer,DIRECT'
-  - 'DOMAIN-SUFFIX,rustdesk.com,DIRECT'
-  - 'DOMAIN-KEYWORD,rustdesk,DIRECT'
-  - 'DOMAIN-KEYWORD,pubg,DIRECT'
-  - 'DOMAIN-KEYWORD,freefire,DIRECT'
-  - 'DOMAIN-KEYWORD,garena,DIRECT'
-  - 'DOMAIN-SUFFIX,epicgames.com,DIRECT'
-  - 'DOMAIN-SUFFIX,steampowered.com,DIRECT'
-  - 'DOMAIN-SUFFIX,steamcommunity.com,DIRECT'
-  - 'DOMAIN-SUFFIX,riotgames.com,DIRECT'
-  - 'DOMAIN-SUFFIX,battle.net,DIRECT'
-  - 'DOMAIN-KEYWORD,valorant,DIRECT'
-  - 'DOMAIN-KEYWORD,fortnite,DIRECT'
   - 'DOMAIN-KEYWORD,bkash,DIRECT'
   - 'DOMAIN-KEYWORD,nagad,DIRECT'
-  - 'DOMAIN-KEYWORD,rocket,DIRECT'
   - 'DOMAIN-SUFFIX,gp.com.bd,DIRECT'
   - 'DOMAIN-SUFFIX,robi.com.bd,DIRECT'
-  - 'DOMAIN-SUFFIX,banglalink.com.bd,DIRECT'
-  - 'DOMAIN-SUFFIX,teletalk.com.bd,DIRECT'
-  - 'DOMAIN-SUFFIX,daraz.com.bd,DIRECT'
-  - 'DOMAIN-SUFFIX,pathao.com,DIRECT'
-  - 'DOMAIN-SUFFIX,foodpanda.com.bd,DIRECT'
   - 'DOMAIN-SUFFIX,com.bd,DIRECT'
-  - 'DOMAIN-KEYWORD,bank,DIRECT'
-  - 'DOMAIN-KEYWORD,dbbl,DIRECT'
-  - 'DOMAIN-KEYWORD,brac,DIRECT'
-  - 'DOMAIN-KEYWORD,islami,DIRECT'
   - 'IP-CIDR,192.168.0.0/16,DIRECT,no-resolve'
   - 'IP-CIDR,10.0.0.0/8,DIRECT,no-resolve'
   - 'IP-CIDR,172.16.0.0/12,DIRECT,no-resolve'
   - 'IP-CIDR,127.0.0.0/8,DIRECT,no-resolve'
-  - 'IP-CIDR,100.64.0.0/10,DIRECT,no-resolve'
-  - 'IP-CIDR,224.0.0.0/4,DIRECT,no-resolve'
   - 'DOMAIN-SUFFIX,local,DIRECT'
   - 'DOMAIN-SUFFIX,lan,DIRECT'
   - 'DST-PORT,9595,DIRECT'
