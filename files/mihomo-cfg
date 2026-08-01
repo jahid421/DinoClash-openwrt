@@ -1,6 +1,7 @@
 #!/bin/sh
 # ═══════════════════════════════════════════════
-# 🦕 DinoClash - Ultra Speed YAML Auto-Optimizer
+# 🦕 DinoClash - Ultra Smart YAML Auto-Optimizer
+# Auto Smart Routing (Games/Apps/Downloads)
 # Developer: Jahid Hasan Shuvo
 # ═══════════════════════════════════════════════
 
@@ -13,6 +14,7 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
     cat > "$TMP"
     
     if [ -s "$TMP" ]; then
+        # STEP 1: SPEED OPTIMIZATION
         awk '
         BEGIN { in_group=0 }
         /^  - name:/ { in_group=1 }
@@ -53,6 +55,7 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
         END { if (in_urltest && !has_lazy) print "    lazy: true" }
         ' "$TMP" > "${TMP}.lazy" && mv "${TMP}.lazy" "$TMP"
         
+        # STEP 2: REQUIRED SETTINGS
         add_if_missing() {
             local key="$1"
             local line="$2"
@@ -81,6 +84,7 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
         grep -q '^keep-alive-interval:' "$TMP" || echo 'keep-alive-interval: 10' >> "$TMP"
         grep -q '^keep-alive-idle:' "$TMP" || echo 'keep-alive-idle: 10' >> "$TMP"
         
+        # STEP 3: PROFILE
         if ! grep -q '^profile:' "$TMP"; then
             cat >> "$TMP" << 'PEOF'
 
@@ -91,6 +95,7 @@ profile:
 PEOF
         fi
         
+        # STEP 4: SNIFFER
         if ! grep -q '^sniffer:' "$TMP"; then
             cat >> "$TMP" << 'SEOF'
 
@@ -110,6 +115,7 @@ sniffer:
 SEOF
         fi
         
+        # STEP 5: TUN (disabled - transparent mode)
         if ! grep -q '^tun:' "$TMP"; then
             cat >> "$TMP" << 'TEOF'
 
@@ -130,6 +136,7 @@ TEOF
             sed -i '/^tun:/,/^[a-z]/ s/^  enable: true$/  enable: false/' "$TMP"
         fi
         
+        # STEP 6: DNS
         if ! grep -q '^dns:' "$TMP"; then
             cat >> "$TMP" << 'DEOF'
 
@@ -139,9 +146,9 @@ dns:
   ipv6: false
   enhanced-mode: redir-host
   default-nameserver:
-    - 223.5.5.5
     - 1.1.1.1
     - 8.8.8.8
+    - 223.5.5.5
     - 114.114.114.114
   nameserver:
     - https://1.1.1.1/dns-query
@@ -149,33 +156,128 @@ dns:
   fallback:
     - tls://1.1.1.1:853
     - tls://dns.google:853
+  nameserver-policy:
+    '+.google.com': 'https://dns.google/dns-query'
+    '+.facebook.com': 'https://1.1.1.1/dns-query'
+    '+.youtube.com': 'https://dns.google/dns-query'
 DEOF
         else
             sed -i 's/enhanced-mode: fake-ip/enhanced-mode: redir-host/g' "$TMP"
             sed -i 's/prefer-h3: true/prefer-h3: false/g' "$TMP"
         fi
         
+        # STEP 7: SMART AUTO-ROUTING RULES
         LAN_IP=$(uci -q get network.lan.ipaddr || echo "192.168.1.1")
         LAN_NET=$(echo "$LAN_IP" | awk -F. '{print $1"."$2"."$3".0/24"}')
         
         if grep -q '^rules:' "$TMP"; then
             sed -i '/192.168.87.0\/24,DIRECT/d' "$TMP"
             sed -i '/192.168.64.0\/24,DIRECT/d' "$TMP"
-            if ! grep -q "$LAN_NET,DIRECT" "$TMP"; then
+            
+            # Add smart routing rules if not present
+            if ! grep -q "# DinoClash Smart Routing" "$TMP"; then
                 sed -i "/^rules:/a\\
+  # DinoClash Smart Routing\\
+  # ═══ LAN Safety (DIRECT) ═══\\
   - 'IP-CIDR,$LAN_NET,DIRECT,no-resolve'\\
   - 'IP-CIDR,192.168.0.0/16,DIRECT,no-resolve'\\
   - 'IP-CIDR,10.0.0.0/8,DIRECT,no-resolve'\\
   - 'IP-CIDR,172.16.0.0/12,DIRECT,no-resolve'\\
   - 'IP-CIDR,127.0.0.0/8,DIRECT,no-resolve'\\
-  - 'DST-PORT,9595,DIRECT'" "$TMP"
+  - 'IP-CIDR,100.64.0.0/10,DIRECT,no-resolve'\\
+  - 'IP-CIDR,224.0.0.0/4,DIRECT,no-resolve'\\
+  - 'DOMAIN-SUFFIX,local,DIRECT'\\
+  - 'DOMAIN-SUFFIX,lan,DIRECT'\\
+  - 'DST-PORT,9595,DIRECT'\\
+  # ═══ Games (Play - DIRECT for low latency) ═══\\
+  - 'DOMAIN-KEYWORD,pubg,DIRECT'\\
+  - 'DOMAIN-KEYWORD,freefire,DIRECT'\\
+  - 'DOMAIN-KEYWORD,garena,DIRECT'\\
+  - 'DOMAIN-KEYWORD,valorant,DIRECT'\\
+  - 'DOMAIN-KEYWORD,fortnite,DIRECT'\\
+  - 'DOMAIN-KEYWORD,codm,DIRECT'\\
+  - 'DOMAIN-KEYWORD,tencent,DIRECT'\\
+  - 'DOMAIN-KEYWORD,riotgames,DIRECT'\\
+  # ═══ Game Updates/Downloads (PROXY for speed) ═══\\
+  - 'DOMAIN-SUFFIX,epicgames.com,Proxy'\\
+  - 'DOMAIN-SUFFIX,steampowered.com,Proxy'\\
+  - 'DOMAIN-SUFFIX,steamcontent.com,Proxy'\\
+  - 'DOMAIN-SUFFIX,steamcommunity.com,Proxy'\\
+  - 'DOMAIN-SUFFIX,steamstatic.com,Proxy'\\
+  - 'DOMAIN-SUFFIX,battle.net,Proxy'\\
+  - 'DOMAIN-SUFFIX,blizzard.com,Proxy'\\
+  - 'DOMAIN-SUFFIX,riotcdn.net,Proxy'\\
+  - 'DOMAIN-SUFFIX,akamaized.net,Proxy'\\
+  - 'DOMAIN-SUFFIX,cloudfront.net,Proxy'\\
+  - 'DOMAIN-KEYWORD,download,Proxy'\\
+  - 'DOMAIN-KEYWORD,update,Proxy'\\
+  - 'DOMAIN-KEYWORD,cdn,Proxy'\\
+  # ═══ Real-time Apps (DIRECT for low latency) ═══\\
+  - 'DOMAIN-SUFFIX,ultraviewer.net,DIRECT'\\
+  - 'DOMAIN-KEYWORD,ultraviewer,DIRECT'\\
+  - 'DOMAIN-SUFFIX,anydesk.com,DIRECT'\\
+  - 'DOMAIN-KEYWORD,anydesk,DIRECT'\\
+  - 'DOMAIN-SUFFIX,teamviewer.com,DIRECT'\\
+  - 'DOMAIN-KEYWORD,teamviewer,DIRECT'\\
+  - 'DOMAIN-SUFFIX,rustdesk.com,DIRECT'\\
+  - 'DOMAIN-KEYWORD,rustdesk,DIRECT'\\
+  # ═══ Voice/Video Calls (DIRECT) ═══\\
+  - 'DOMAIN-SUFFIX,zoom.us,DIRECT'\\
+  - 'DOMAIN-KEYWORD,zoom,DIRECT'\\
+  - 'DOMAIN-SUFFIX,teams.microsoft.com,DIRECT'\\
+  - 'DOMAIN-KEYWORD,skype,DIRECT'\\
+  - 'DOMAIN-SUFFIX,webex.com,DIRECT'\\
+  - 'DOMAIN-SUFFIX,gotomeeting.com,DIRECT'\\
+  # ═══ Chat Apps (DIRECT - faster) ═══\\
+  - 'DOMAIN-SUFFIX,whatsapp.com,DIRECT'\\
+  - 'DOMAIN-SUFFIX,whatsapp.net,DIRECT'\\
+  - 'DOMAIN-KEYWORD,whatsapp,DIRECT'\\
+  - 'DOMAIN-SUFFIX,messenger.com,DIRECT'\\
+  - 'DOMAIN-KEYWORD,messenger,DIRECT'\\
+  - 'DOMAIN-SUFFIX,fbcdn.net,DIRECT'\\
+  - 'DOMAIN-SUFFIX,telegram.org,DIRECT'\\
+  - 'DOMAIN-SUFFIX,t.me,DIRECT'\\
+  - 'DOMAIN-KEYWORD,telegram,DIRECT'\\
+  - 'DOMAIN-SUFFIX,discord.com,DIRECT'\\
+  - 'DOMAIN-SUFFIX,discord.gg,DIRECT'\\
+  - 'DOMAIN-SUFFIX,discordapp.com,DIRECT'\\
+  - 'DOMAIN-KEYWORD,discord,DIRECT'\\
+  - 'DOMAIN-SUFFIX,linkedin.com,DIRECT'\\
+  - 'DOMAIN-KEYWORD,linkedin,DIRECT'\\
+  - 'DOMAIN-SUFFIX,slack.com,DIRECT'\\
+  # ═══ Banking & Payment (DIRECT - security) ═══\\
+  - 'DOMAIN-KEYWORD,bkash,DIRECT'\\
+  - 'DOMAIN-KEYWORD,nagad,DIRECT'\\
+  - 'DOMAIN-KEYWORD,rocket,DIRECT'\\
+  - 'DOMAIN-KEYWORD,upay,DIRECT'\\
+  - 'DOMAIN-KEYWORD,bank,DIRECT'\\
+  - 'DOMAIN-KEYWORD,dbbl,DIRECT'\\
+  - 'DOMAIN-KEYWORD,brac,DIRECT'\\
+  - 'DOMAIN-KEYWORD,islami,DIRECT'\\
+  - 'DOMAIN-KEYWORD,citybank,DIRECT'\\
+  - 'DOMAIN-KEYWORD,dutchbangla,DIRECT'\\
+  # ═══ Bangladesh Apps (DIRECT - local) ═══\\
+  - 'DOMAIN-SUFFIX,gp.com.bd,DIRECT'\\
+  - 'DOMAIN-SUFFIX,robi.com.bd,DIRECT'\\
+  - 'DOMAIN-SUFFIX,banglalink.com.bd,DIRECT'\\
+  - 'DOMAIN-SUFFIX,teletalk.com.bd,DIRECT'\\
+  - 'DOMAIN-SUFFIX,daraz.com.bd,DIRECT'\\
+  - 'DOMAIN-SUFFIX,pathao.com,DIRECT'\\
+  - 'DOMAIN-SUFFIX,foodpanda.com.bd,DIRECT'\\
+  - 'DOMAIN-SUFFIX,com.bd,DIRECT'\\
+  # ═══ UDP High Ports (Games, WebRTC) → DIRECT ═══\\
+  - 'DST-PORT,3478,DIRECT'\\
+  - 'DST-PORT,10000-20000,DIRECT'\\
+  - 'DST-PORT,17000-27000,DIRECT'\\
+  - 'DST-PORT,50000-65535,DIRECT'\\
+  # ═══ Everything else → PROXY (fast download speed) ═══" "$TMP"
             fi
         fi
         
+        # STEP 8: VALIDATE & APPLY
         if /usr/bin/mihomo -d /etc/mihomo -f "$TMP" -t 2>/tmp/mhcfg_err.log; then
             cp /etc/mihomo/config.yaml /etc/mihomo/config.yaml.bak 2>/dev/null
             mv "$TMP" /etc/mihomo/config.yaml
-            # Auto enable transparent + service on YAML upload
             echo "1" > /etc/mihomo/transparent
             echo "1" > /etc/mihomo/enabled
             /etc/init.d/mihomo restart >/dev/null 2>&1
