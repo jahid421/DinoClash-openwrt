@@ -1,7 +1,6 @@
 #!/bin/sh
 # ═══════════════════════════════════════════════
-# 🦕 DinoClash - Smart Auto-Config Engine
-# Works like OpenClash / FLClash
+# 🦕 DinoClash - Ultra Speed YAML Auto-Optimizer
 # Developer: Jahid Hasan Shuvo
 # ═══════════════════════════════════════════════
 
@@ -10,12 +9,10 @@ echo ""
 
 if [ "$REQUEST_METHOD" = "POST" ]; then
     TMP="/tmp/mhcfg_$$.yaml"
-    trap "rm -f ${TMP}.opt ${TMP}.lazy ${TMP}.new /tmp/mhcfg_err.log /tmp/dcproxy_$$" EXIT
+    trap "rm -f ${TMP}.opt ${TMP}.lazy ${TMP}.new /tmp/mhcfg_err.log" EXIT
     cat > "$TMP"
     
     if [ -s "$TMP" ]; then
-    
-        # SPEED OPTIMIZATION
         awk '
         BEGIN { in_group=0 }
         /^  - name:/ { in_group=1 }
@@ -35,6 +32,8 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
         sed -i 's/interval: 180/interval: 120/g' "$TMP"
         sed -i 's/tolerance: 50/tolerance: 20/g' "$TMP"
         sed -i 's/tolerance: 100/tolerance: 20/g' "$TMP"
+        
+        # Remove problematic BD GeoIP
         sed -i '/GEOIP,BD,DIRECT/d' "$TMP"
         sed -i '/GEOIP,LAN,DIRECT/d' "$TMP"
         
@@ -54,10 +53,11 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
         END { if (in_urltest && !has_lazy) print "    lazy: true" }
         ' "$TMP" > "${TMP}.lazy" && mv "${TMP}.lazy" "$TMP"
         
-        # BASIC SETTINGS
         add_if_missing() {
-            if ! grep -q "^${1}" "$TMP"; then
-                { echo "$2"; cat "$TMP"; } > "${TMP}.new" && mv "${TMP}.new" "$TMP"
+            local key="$1"
+            local line="$2"
+            if ! grep -q "^${key}" "$TMP"; then
+                { echo "$line"; cat "$TMP"; } > "${TMP}.new" && mv "${TMP}.new" "$TMP"
             fi
         }
         
@@ -81,7 +81,6 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
         grep -q '^keep-alive-interval:' "$TMP" || echo 'keep-alive-interval: 10' >> "$TMP"
         grep -q '^keep-alive-idle:' "$TMP" || echo 'keep-alive-idle: 10' >> "$TMP"
         
-        # PROFILE
         if ! grep -q '^profile:' "$TMP"; then
             cat >> "$TMP" << 'PEOF'
 
@@ -92,7 +91,6 @@ profile:
 PEOF
         fi
         
-        # SNIFFER
         if ! grep -q '^sniffer:' "$TMP"; then
             cat >> "$TMP" << 'SEOF'
 
@@ -112,7 +110,6 @@ sniffer:
 SEOF
         fi
         
-        # TUN
         if ! grep -q '^tun:' "$TMP"; then
             cat >> "$TMP" << 'TEOF'
 
@@ -133,7 +130,6 @@ TEOF
             sed -i '/^tun:/,/^[a-z]/ s/^  enable: true$/  enable: false/' "$TMP"
         fi
         
-        # DNS
         if ! grep -q '^dns:' "$TMP"; then
             cat >> "$TMP" << 'DEOF'
 
@@ -143,9 +139,9 @@ dns:
   ipv6: false
   enhanced-mode: redir-host
   default-nameserver:
+    - 223.5.5.5
     - 1.1.1.1
     - 8.8.8.8
-    - 223.5.5.5
     - 114.114.114.114
   nameserver:
     - https://1.1.1.1/dns-query
@@ -159,202 +155,27 @@ DEOF
             sed -i 's/prefer-h3: true/prefer-h3: false/g' "$TMP"
         fi
         
-        # AUTO-DETECT PROXY TYPES (no emoji - safe)
-        rm -f /tmp/dcproxy_$$
+        LAN_IP=$(uci -q get network.lan.ipaddr || echo "192.168.1.1")
+        LAN_NET=$(echo "$LAN_IP" | awk -F. '{print $1"."$2"."$3".0/24"}')
         
-        awk '
-        /^proxies:/ { inp=1; next }
-        /^[a-z]/ && !/^  / && !/^proxies:/ { inp=0 }
-        inp && /^  - name:/ {
-            n=$0; sub(/.*name: */, "", n); gsub(/["'"'"']/, "", n); gsub(/^ *| *$/, "", n)
-            cn=n
-        }
-        inp && /^    type: *http$/ { print "H|" cn }
-        inp && /type: *socks5/ { print "S|" cn }
-        inp && /type: *ss$/ { print "A|" cn }
-        inp && /type: *vmess/ { print "A|" cn }
-        inp && /type: *vless/ { print "A|" cn }
-        inp && /type: *trojan/ { print "A|" cn }
-        ' "$TMP" | sort -t'|' -k2 -u > /tmp/dcproxy_$$
-        
-        HC=$(grep -c "^H|" /tmp/dcproxy_$$ 2>/dev/null || echo 0)
-        SC=$(grep -c "^S|" /tmp/dcproxy_$$ 2>/dev/null || echo 0)
-        AC=$(grep -c "^A|" /tmp/dcproxy_$$ 2>/dev/null || echo 0)
-        TOTAL=$((HC + SC + AC))
-        
-        if [ "$TOTAL" -gt 0 ]; then
-            # Remove old proxy-groups
-            if grep -q '^proxy-groups:' "$TMP"; then
-                awk '
-                /^proxy-groups:/ { s=1; next }
-                s && /^[a-z]/ && !/^  / { s=0 }
-                !s
-                ' "$TMP" > "${TMP}.new" && mv "${TMP}.new" "$TMP"
+        if grep -q '^rules:' "$TMP"; then
+            sed -i '/192.168.87.0\/24,DIRECT/d' "$TMP"
+            sed -i '/192.168.64.0\/24,DIRECT/d' "$TMP"
+            if ! grep -q "$LAN_NET,DIRECT" "$TMP"; then
+                sed -i "/^rules:/a\\
+  - 'IP-CIDR,$LAN_NET,DIRECT,no-resolve'\\
+  - 'IP-CIDR,192.168.0.0/16,DIRECT,no-resolve'\\
+  - 'IP-CIDR,10.0.0.0/8,DIRECT,no-resolve'\\
+  - 'IP-CIDR,172.16.0.0/12,DIRECT,no-resolve'\\
+  - 'IP-CIDR,127.0.0.0/8,DIRECT,no-resolve'\\
+  - 'DST-PORT,9595,DIRECT'" "$TMP"
             fi
-            
-            # Remove old rules
-            if grep -q '^rules:' "$TMP"; then
-                awk '
-                /^rules:/ { s=1; next }
-                s && /^[a-z]/ && !/^  / { s=0 }
-                !s
-                ' "$TMP" > "${TMP}.new" && mv "${TMP}.new" "$TMP"
-            fi
-            
-            # BUILD PROXY GROUPS (no emoji)
-            {
-                echo ""
-                echo "proxy-groups:"
-                
-                if [ "$HC" -gt 0 ]; then
-                    echo "  - name: \"Fast Speed\""
-                    echo "    type: url-test"
-                    echo "    proxies:"
-                    grep "^H|" /tmp/dcproxy_$$ | cut -d'|' -f2 | while IFS= read -r n; do
-                        echo "      - \"$n\""
-                    done
-                    echo "    url: http://www.gstatic.com/generate_204"
-                    echo "    interval: 120"
-                    echo "    tolerance: 20"
-                    echo "    lazy: true"
-                fi
-                
-                if [ "$SC" -gt 0 ]; then
-                    echo "  - name: \"UDP Apps\""
-                    echo "    type: url-test"
-                    echo "    proxies:"
-                    grep "^S|" /tmp/dcproxy_$$ | cut -d'|' -f2 | while IFS= read -r n; do
-                        echo "      - \"$n\""
-                    done
-                    echo "    url: http://www.gstatic.com/generate_204"
-                    echo "    interval: 120"
-                    echo "    tolerance: 20"
-                    echo "    lazy: true"
-                fi
-                
-                if [ "$AC" -gt 0 ]; then
-                    echo "  - name: \"Advanced\""
-                    echo "    type: url-test"
-                    echo "    proxies:"
-                    grep "^A|" /tmp/dcproxy_$$ | cut -d'|' -f2 | while IFS= read -r n; do
-                        echo "      - \"$n\""
-                    done
-                    echo "    url: http://www.gstatic.com/generate_204"
-                    echo "    interval: 120"
-                    echo "    tolerance: 20"
-                    echo "    lazy: true"
-                fi
-                
-                echo "  - name: \"Proxy\""
-                echo "    type: select"
-                echo "    proxies:"
-                [ "$HC" -gt 0 ] && echo "      - \"Fast Speed\""
-                [ "$SC" -gt 0 ] && echo "      - \"UDP Apps\""
-                [ "$AC" -gt 0 ] && echo "      - \"Advanced\""
-                echo "      - DIRECT"
-                
-                echo "  - name: \"Streaming\""
-                echo "    type: select"
-                echo "    proxies:"
-                [ "$HC" -gt 0 ] && echo "      - \"Fast Speed\""
-                [ "$AC" -gt 0 ] && echo "      - \"Advanced\""
-                [ "$SC" -gt 0 ] && echo "      - \"UDP Apps\""
-                echo "      - DIRECT"
-                
-                echo "  - name: \"Downloads\""
-                echo "    type: select"
-                echo "    proxies:"
-                [ "$HC" -gt 0 ] && echo "      - \"Fast Speed\""
-                [ "$AC" -gt 0 ] && echo "      - \"Advanced\""
-                echo "      - DIRECT"
-                
-                echo "  - name: \"Games\""
-                echo "    type: select"
-                echo "    proxies:"
-                [ "$SC" -gt 0 ] && echo "      - \"UDP Apps\""
-                [ "$AC" -gt 0 ] && echo "      - \"Advanced\""
-                echo "      - DIRECT"
-                
-                echo "  - name: \"RealTime\""
-                echo "    type: select"
-                echo "    proxies:"
-                [ "$SC" -gt 0 ] && echo "      - \"UDP Apps\""
-                [ "$AC" -gt 0 ] && echo "      - \"Advanced\""
-                echo "      - DIRECT"
-                
-            } >> "$TMP"
-            
-            # BUILD RULES (no emoji)
-            LAN_IP=$(uci -q get network.lan.ipaddr || echo "192.168.1.1")
-            LAN_NET=$(echo "$LAN_IP" | awk -F. '{print $1"."$2"."$3".0/24"}')
-            
-            {
-                echo ""
-                echo "rules:"
-                echo "  - 'IP-CIDR,$LAN_NET,DIRECT,no-resolve'"
-                echo "  - 'IP-CIDR,192.168.0.0/16,DIRECT,no-resolve'"
-                echo "  - 'IP-CIDR,10.0.0.0/8,DIRECT,no-resolve'"
-                echo "  - 'IP-CIDR,172.16.0.0/12,DIRECT,no-resolve'"
-                echo "  - 'IP-CIDR,127.0.0.0/8,DIRECT,no-resolve'"
-                echo "  - 'IP-CIDR,100.64.0.0/10,DIRECT,no-resolve'"
-                echo "  - 'IP-CIDR,224.0.0.0/4,DIRECT,no-resolve'"
-                echo "  - 'DOMAIN-SUFFIX,local,DIRECT'"
-                echo "  - 'DOMAIN-SUFFIX,lan,DIRECT'"
-                echo "  - 'DST-PORT,9595,DIRECT'"
-                echo "  - 'DOMAIN-SUFFIX,com.bd,DIRECT'"
-                echo "  - 'DOMAIN-SUFFIX,gov.bd,DIRECT'"
-                echo "  - 'DOMAIN-KEYWORD,bkash,DIRECT'"
-                echo "  - 'DOMAIN-KEYWORD,nagad,DIRECT'"
-                echo "  - 'DOMAIN-KEYWORD,rocket,DIRECT'"
-                echo "  - 'DOMAIN-KEYWORD,bank,DIRECT'"
-                echo "  - 'DOMAIN-KEYWORD,daraz,DIRECT'"
-                echo "  - 'DOMAIN-KEYWORD,pathao,DIRECT'"
-                echo "  - 'DOMAIN-SUFFIX,youtube.com,Streaming'"
-                echo "  - 'DOMAIN-SUFFIX,googlevideo.com,Streaming'"
-                echo "  - 'DOMAIN-SUFFIX,ytimg.com,Streaming'"
-                echo "  - 'DOMAIN-SUFFIX,netflix.com,Streaming'"
-                echo "  - 'DOMAIN-SUFFIX,nflxvideo.net,Streaming'"
-                echo "  - 'DOMAIN-SUFFIX,twitch.tv,Streaming'"
-                echo "  - 'DOMAIN-SUFFIX,disney.com,Streaming'"
-                echo "  - 'DOMAIN-SUFFIX,hulu.com,Streaming'"
-                echo "  - 'DOMAIN-SUFFIX,primevideo.com,Streaming'"
-                echo "  - 'DOMAIN-KEYWORD,download,Downloads'"
-                echo "  - 'DOMAIN-KEYWORD,update,Downloads'"
-                echo "  - 'DOMAIN-KEYWORD,cdn,Downloads'"
-                echo "  - 'DOMAIN-SUFFIX,akamaized.net,Downloads'"
-                echo "  - 'DOMAIN-SUFFIX,cloudfront.net,Downloads'"
-                echo "  - 'DOMAIN-SUFFIX,steamcontent.com,Downloads'"
-                echo "  - 'DOMAIN-SUFFIX,steampowered.com,Downloads'"
-                echo "  - 'DOMAIN-SUFFIX,epicgames.com,Downloads'"
-                echo "  - 'DOMAIN-SUFFIX,battle.net,Downloads'"
-                echo "  - 'DOMAIN-KEYWORD,pubg,Games'"
-                echo "  - 'DOMAIN-KEYWORD,freefire,Games'"
-                echo "  - 'DOMAIN-KEYWORD,garena,Games'"
-                echo "  - 'DOMAIN-KEYWORD,valorant,Games'"
-                echo "  - 'DOMAIN-KEYWORD,fortnite,Games'"
-                echo "  - 'DOMAIN-KEYWORD,tencent,Games'"
-                echo "  - 'DOMAIN-KEYWORD,riotgames,Games'"
-                echo "  - 'DOMAIN-KEYWORD,zoom,RealTime'"
-                echo "  - 'DOMAIN-KEYWORD,teams,RealTime'"
-                echo "  - 'DOMAIN-KEYWORD,skype,RealTime'"
-                echo "  - 'DOMAIN-KEYWORD,discord,RealTime'"
-                echo "  - 'DOMAIN-KEYWORD,whatsapp,RealTime'"
-                echo "  - 'DOMAIN-KEYWORD,messenger,RealTime'"
-                echo "  - 'DOMAIN-KEYWORD,telegram,RealTime'"
-                echo "  - 'DOMAIN-KEYWORD,ultraviewer,RealTime'"
-                echo "  - 'DOMAIN-KEYWORD,anydesk,RealTime'"
-                echo "  - 'DOMAIN-KEYWORD,teamviewer,RealTime'"
-                echo "  - 'DOMAIN-KEYWORD,rustdesk,RealTime'"
-                echo "  - 'MATCH,Proxy'"
-            } >> "$TMP"
         fi
         
-        rm -f /tmp/dcproxy_$$
-        
-        # VALIDATE & APPLY
         if /usr/bin/mihomo -d /etc/mihomo -f "$TMP" -t 2>/tmp/mhcfg_err.log; then
             cp /etc/mihomo/config.yaml /etc/mihomo/config.yaml.bak 2>/dev/null
             mv "$TMP" /etc/mihomo/config.yaml
+            # Auto enable transparent + service on YAML upload
             echo "1" > /etc/mihomo/transparent
             echo "1" > /etc/mihomo/enabled
             /etc/init.d/mihomo restart >/dev/null 2>&1
