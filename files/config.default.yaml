@@ -1,10 +1,10 @@
 # ═══════════════════════════════════════════
 # 🦕 DinoClash Default Config for OpenWrt
-# Ultra Speed + Low Latency + Chat Apps Fix
+# TUN Mode - Works like FLClash
+# All Software Compatible
 # Developer: Jahid Hasan Shuvo
 # ═══════════════════════════════════════════
 mixed-port: 7890
-redir-port: 7892
 allow-lan: true
 bind-address: '*'
 mode: rule
@@ -22,7 +22,6 @@ tcp-concurrent: true
 unified-delay: true
 keep-alive-interval: 15
 keep-alive-idle: 600
-disable-keep-alive: false
 
 profile:
   store-selected: true
@@ -45,38 +44,58 @@ sniffer:
   skip-domain:
     - "Mijia Cloud"
     - "+.push.apple.com"
-    - "+.linkedin.com"
-    - "+.discord.com"
-    - "+.discordapp.com"
-    - "+.whatsapp.net"
-    - "+.messenger.com"
 
+# ═══ TUN MODE - Works like FLClash ═══
 tun:
-  enable: false
+  enable: true
   stack: system
   device: utun
   auto-route: true
   auto-detect-interface: true
-  strict-route: false
-  mtu: 1500
+  auto-redirect: false
+  strict-route: true
+  mtu: 9000
+  gso: true
+  gso-max-size: 65536
   dns-hijack:
     - "any:53"
+    - "tcp://any:53"
   inet4-address:
     - 172.19.0.1/30
+  inet6-address:
+    - "fdfe:dcba:9876::1/126"
+  endpoint-independent-nat: true
 
 dns:
   enable: true
   listen: 0.0.0.0:1053
   ipv6: false
-  enhanced-mode: redir-host
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  fake-ip-filter:
+    - "*.lan"
+    - "*.local"
+    - "*.arpa"
+    - "time.*.com"
+    - "ntp.*.com"
+    - "*.openwrt.org"
+    - "+.msftconnecttest.com"
+    - "+.msftncsi.com"
+    - "localhost.ptlogin2.qq.com"
+    - "localhost.sec.qq.com"
+    - "+.linkedin.com"
+    - "+.discord.com"
+    - "+.discordapp.com"
+    - "+.whatsapp.net"
+    - "+.messenger.com"
   cache-algorithm: arc
   use-hosts: true
   use-system-hosts: true
+  respect-rules: true
   default-nameserver:
     - 1.1.1.1
     - 8.8.8.8
     - 223.5.5.5
-    - 114.114.114.114
   nameserver:
     - https://1.1.1.1/dns-query
     - https://dns.google/dns-query
@@ -88,16 +107,12 @@ dns:
     '+.linkedin.com': '1.1.1.1'
     '+.discord.com': '1.1.1.1'
     '+.discordapp.com': '1.1.1.1'
-    '+.discord.gg': '1.1.1.1'
-    '+.discordapp.net': '1.1.1.1'
     '+.whatsapp.com': '1.1.1.1'
     '+.whatsapp.net': '1.1.1.1'
     '+.messenger.com': '1.1.1.1'
     '+.facebook.com': '1.1.1.1'
     '+.instagram.com': '1.1.1.1'
     '+.telegram.org': '1.1.1.1'
-    '+.google.com': 'https://dns.google/dns-query'
-    '+.youtube.com': 'https://dns.google/dns-query'
 
 proxies: []
 
@@ -118,7 +133,7 @@ proxy-groups:
     lazy: true
 
 rules:
-  # ═══ Chat & Social Apps (DIRECT for speed) ═══
+  # ═══ Chat & Social Apps (DIRECT) ═══
   - 'DOMAIN-SUFFIX,linkedin.com,DIRECT'
   - 'DOMAIN-SUFFIX,licdn.com,DIRECT'
   - 'DOMAIN-KEYWORD,linkedin,DIRECT'
@@ -150,17 +165,37 @@ rules:
   - 'DOMAIN-KEYWORD,teamviewer,DIRECT'
   - 'DOMAIN-SUFFIX,rustdesk.com,DIRECT'
   - 'DOMAIN-KEYWORD,rustdesk,DIRECT'
-  - 'DOMAIN-SUFFIX,logmein.com,DIRECT'
-  - 'DOMAIN-SUFFIX,splashtop.com,DIRECT'
-  - 'DOMAIN-SUFFIX,parsec.app,DIRECT'
 
   # ═══ Gaming (DIRECT) ═══
   - 'DOMAIN-KEYWORD,pubg,DIRECT'
+  - 'DOMAIN-KEYWORD,freefire,DIRECT'
+  - 'DOMAIN-KEYWORD,garena,DIRECT'
   - 'DOMAIN-SUFFIX,epicgames.com,DIRECT'
   - 'DOMAIN-SUFFIX,steampowered.com,DIRECT'
   - 'DOMAIN-SUFFIX,steamcommunity.com,DIRECT'
   - 'DOMAIN-SUFFIX,riotgames.com,DIRECT'
   - 'DOMAIN-SUFFIX,battle.net,DIRECT'
+  - 'DOMAIN-KEYWORD,valorant,DIRECT'
+  - 'DOMAIN-KEYWORD,fortnite,DIRECT'
+
+  # ═══ Bangladesh Apps (DIRECT) ═══
+  - 'DOMAIN-KEYWORD,bkash,DIRECT'
+  - 'DOMAIN-KEYWORD,nagad,DIRECT'
+  - 'DOMAIN-KEYWORD,rocket,DIRECT'
+  - 'DOMAIN-SUFFIX,gp.com.bd,DIRECT'
+  - 'DOMAIN-SUFFIX,robi.com.bd,DIRECT'
+  - 'DOMAIN-SUFFIX,banglalink.com.bd,DIRECT'
+  - 'DOMAIN-SUFFIX,teletalk.com.bd,DIRECT'
+  - 'DOMAIN-SUFFIX,daraz.com.bd,DIRECT'
+  - 'DOMAIN-SUFFIX,pathao.com,DIRECT'
+  - 'DOMAIN-SUFFIX,foodpanda.com.bd,DIRECT'
+
+  # ═══ Banking Apps (DIRECT) ═══
+  - 'DOMAIN-KEYWORD,bank,DIRECT'
+  - 'DOMAIN-KEYWORD,dbbl,DIRECT'
+  - 'DOMAIN-KEYWORD,brac,DIRECT'
+  - 'DOMAIN-KEYWORD,islami,DIRECT'
+  - 'DOMAIN-KEYWORD,citybank,DIRECT'
 
   # ═══ LAN Safety (DIRECT) ═══
   - 'IP-CIDR,192.168.0.0/16,DIRECT,no-resolve'
@@ -173,7 +208,7 @@ rules:
   - 'DOMAIN-SUFFIX,lan,DIRECT'
   - 'DST-PORT,9595,DIRECT'
 
-  # ═══ Bangladesh Local (DIRECT) ═══
+  # ═══ Bangladesh Local Traffic (DIRECT) ═══
   - 'GEOIP,BD,DIRECT,no-resolve'
   - 'GEOIP,LAN,DIRECT,no-resolve'
 
