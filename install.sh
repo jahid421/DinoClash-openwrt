@@ -1,6 +1,7 @@
 #!/bin/sh
 # ═══════════════════════════════════════════════
 # 🦕 DinoClash for OpenWrt - Universal Installer
+# With Built-in Speed Boost
 # Repo: https://github.com/jahid421/DinoClash-openwrt
 # Developer: Jahid Hasan Shuvo
 # ═══════════════════════════════════════════════
@@ -12,7 +13,7 @@ D="/etc/mihomo"
 echo ""
 echo "╔══════════════════════════════════════╗"
 echo "║  🦕 DinoClash for OpenWrt            ║"
-echo "║  Auto-bypass (Redirect Mode)         ║"
+echo "║  Auto-bypass + Speed Boost           ║"
 echo "║  Developer: Jahid Hasan Shuvo        ║"
 echo "╚══════════════════════════════════════╝"
 echo ""
@@ -140,7 +141,7 @@ echo "[✓] DinoClash core installed"
 
 mkdir -p $D/profiles $D/providers $D/ruleset $D/ui $D/scripts
 
-# IMPORTANT: Service disabled by default (no internet break)
+# Service disabled by default (safe mode)
 echo "0" > $D/transparent
 echo "0" > $D/enabled
 
@@ -213,6 +214,45 @@ uci set firewall.mihomo_proxy.target='ACCEPT'
 uci commit firewall
 /etc/init.d/firewall restart 2>/dev/null || true
 
+# ═══════════════════════════════════════════════
+# 🚀 SPEED BOOST - TCP Optimization (Auto)
+# ═══════════════════════════════════════════════
+echo "[*] Applying speed boost..."
+
+# Apply now
+sysctl -w net.ipv4.tcp_fastopen=3 >/dev/null 2>&1
+sysctl -w net.core.rmem_max=16777216 >/dev/null 2>&1
+sysctl -w net.core.wmem_max=16777216 >/dev/null 2>&1
+sysctl -w net.ipv4.tcp_rmem="4096 87380 16777216" >/dev/null 2>&1
+sysctl -w net.ipv4.tcp_wmem="4096 87380 16777216" >/dev/null 2>&1
+sysctl -w net.core.netdev_max_backlog=5000 >/dev/null 2>&1
+sysctl -w net.ipv4.tcp_slow_start_after_idle=0 >/dev/null 2>&1
+sysctl -w net.ipv4.tcp_mtu_probing=1 >/dev/null 2>&1
+
+# Make permanent (survives reboot)
+cat > /etc/sysctl.d/99-dinoclash-speed.conf << 'SYSCTLEOF'
+# DinoClash Speed Boost - Auto Applied
+net.ipv4.tcp_fastopen=3
+net.core.rmem_max=16777216
+net.core.wmem_max=16777216
+net.ipv4.tcp_rmem=4096 87380 16777216
+net.ipv4.tcp_wmem=4096 87380 16777216
+net.core.netdev_max_backlog=5000
+net.ipv4.tcp_slow_start_after_idle=0
+net.ipv4.tcp_mtu_probing=1
+SYSCTLEOF
+
+# Auto-boost mihomo priority at boot
+cat > /etc/rc.d/S99mihomo-boost << 'BOOSTEOF'
+#!/bin/sh
+sleep 30
+PID=$(pgrep -f mihomo | head -1)
+[ -n "$PID" ] && renice -n -10 -p $PID 2>/dev/null && ionice -c 1 -n 0 -p $PID 2>/dev/null
+BOOSTEOF
+chmod +x /etc/rc.d/S99mihomo-boost 2>/dev/null
+
+echo "[✓] Speed boost applied (persistent)"
+
 rm -rf /tmp/luci-*
 /etc/init.d/rpcd restart >/dev/null 2>&1
 /etc/init.d/uhttpd restart >/dev/null 2>&1
@@ -224,6 +264,11 @@ echo ""
 echo "   ⚠️  Service is STOPPED (safe mode)"
 echo "   Internet works normally."
 echo ""
+echo "   🚀 Speed Boost: ACTIVE (persistent)"
+echo "      - TCP Fast Open"
+echo "      - Buffer optimization"
+echo "      - Auto priority boost"
+echo ""
 echo "   🌐 LuCI Panel: http://$LAN_IP"
 echo "                  → Services → DinoClash 🦕"
 echo "   📊 Dashboard:  http://$LAN_IP:9595/ui"
@@ -233,6 +278,7 @@ echo "   📄 Next Steps:"
 echo "      1. Open LuCI Panel"
 echo "      2. Upload YAML config"
 echo "      3. Auto-Bypass will turn ON automatically"
+echo "      4. Enjoy fast speed! 🚀"
 echo ""
 echo "═══════════════════════════════════════"
 echo "🦕 DinoClash by Jahid Hasan Shuvo"
